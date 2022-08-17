@@ -2,7 +2,7 @@
    "name": "minesweeper.js",
 
    "version": "1.0.0",
-   "description": "A Minesweeper class that can be used to easily create minefields and play without having to code any logic (UI-indipendent)",
+   "description": "A Minesweeper class engine that can be used to easily create minefields and play without having to code any logic (UI-indipendent)",
    "main": "src/minesweeper.js",
 
    "repository": {
