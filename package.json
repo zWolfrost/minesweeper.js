@@ -1,18 +1,16 @@
 {
    "name": "@zwolfrost/minesweeper.js",
-
-   "version": "1.0.0",
+   "version": "1.0.1",
    "description": "A Minesweeper class engine that can be used to easily create minefields and play without having to code any logic (UI-indipendent)",
    "main": "src/minesweeper.js",
-
    "repository": {
-     "type": "git",
-     "url": "git+https://github.com/zWolfrost/minesweeper.js.git"
+      "type": "git",
+      "url": "git+https://github.com/zWolfrost/minesweeper.js.git"
    },
    "author": "Luca Russo",
    "license": "MIT",
    "bugs": {
-     "url": "https://github.com/zWolfrost/minesweeper.js/issues"
+      "url": "https://github.com/zWolfrost/minesweeper.js/issues"
    },
    "homepage": "https://github.com/zWolfrost/minesweeper.js#readme"
 }
