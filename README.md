@@ -12,7 +12,7 @@ You can just install it like any npm package
 npm i @zwolfrost/minesweeper.js
 ```
 
-or download the file from the [src directory](src/minesweeper.js)
+or just copy the file from the [src directory](src/minesweeper.js)
 
 # How to use
 Import the class by using the line `import Minefield from "path/to/minesweeper.js"`
