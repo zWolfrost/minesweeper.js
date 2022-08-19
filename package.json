@@ -20,6 +20,11 @@
       "game",
       "minefield",
       "minesweeperjs",
-      "logic"
+      "logic",
+      "algorithm",
+      "board",
+      "grid",
+      "javascript",
+      "js"
    ]
 }
