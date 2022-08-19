@@ -41,7 +41,7 @@ Creates a 2x5 minefield with 3 mines, which is an object containing:
 
 
 ## Methods
-#### Full accurate description of methods here mentioned available in JSDOC Comments**
+#### Full accurate description of methods here mentioned available in JSDOC Comments
 
 |      Method      | Short Description
 |:----------------:|:-
