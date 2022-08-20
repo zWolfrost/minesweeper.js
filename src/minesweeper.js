@@ -16,44 +16,80 @@ export default class Minefield
     * Creates a new minefield with the given rows, columns and mines number (and randomizes them)
     * @param {Number} rows The number of rows of the minefield
     * @param {Number} cols The number of columns of the minefield
-    * @param {Number} mines The number of total mines (default: rows*cols/5)
+    * @param {Number} mines The number of total mines (default: rows*cols/5). If array given, the values of the array will be the indexes where the mines will be placed
     * @param {Function} randomizer A function that returns a random decimal number between 0 and 1 (default: {@link Math.random})
     * @returns {Minefield} A new Minefield object
     * @throws {Error} If parameters are invalid
     */
    constructor(rows, cols, mines = Math.floor(rows*cols/5), randomizer = Math.random)
    {
-      rows = Math.floor(+rows), cols = Math.floor(+cols), mines = Math.floor(+mines);
-      if (rows < 1 || cols < 1 || mines < 1) throw new Error("Invalid minefield dimensions");
-      if (mines > rows*cols) throw new Error("Mines number is greater than the total cells number");
+      rows = validateNumber(rows, 0), cols = validateNumber(cols, 0);
 
-      let cells = rows * cols;
+      let cells = rows*cols;
 
-      Object.assign(this, {rows: rows, cols: cols, cells: cells, mines: mines}); //assign properties to minefield
-      
-      for (let i=0; i<cells; i++) //assign properties to cells and add mines
+      if (Array.isArray(mines))
       {
-         this[i] = {mines: 0, isMine: i < mines, isOpen: false, isFlagged: false};
-      }
-
-      for (let i=cells-1; i > 0; i--) //Knuth-Fisher-Yates shuffle algorithm
-      {
-         let j = Math.floor(randomizer() * (i + 1));
-         [this[i], this[j]] = [this[j], this[i]];
-      }
-
-      for (let i=0; i<cells; i++) //calculate nearby mines number for each cell and assign it
-      {
-         if (this[i].isMine)
+         //assign properties to minefield
+         Object.assign(this, {rows: rows, cols: cols, cells: cells, mines: mines.length});
+         
+         //assign properties to cells and add mines
+         for (let i=0; i<cells; i++)
          {
-            this.getNearbyCells(i).forEach(cell => this[cell].mines++) //highs up the nearby cells' mines number by one
+            this[i] = {mines: 0, isMine: false, isOpen: false, isFlagged: false};
+         }
+   
+         //assign mines to cells and high up the cells' nearby mines number by one
+         for (let i=0; i<mines.length; i++)
+         {
+            this[mines[i]].isMine = true;
+
+            let nearbyCells = this.getNearbyCells(mines[i], true);
+
+            for (let j=0; j<nearbyCells.length; j++)
+            {
+               this[nearbyCells[j]].mines++;
+            }
+         }
+      }
+      else
+      {
+         mines = validateNumber(mines, 0, cells);
+
+         //assign properties to minefield
+         Object.assign(this, {rows: rows, cols: cols, cells: cells, mines: mines});
+         
+         //assign properties to cells and add mines
+         for (let i=0; i<cells; i++)
+         {
+            this[i] = {mines: 0, isMine: i < mines, isOpen: false, isFlagged: false};
+         }
+   
+         //Knuth-Fisher-Yates shuffle algorithm
+         for (let i=cells-1; i > 0; i--)
+         {
+            let j = Math.floor(randomizer() * (i+1));
+            [this[i], this[j]] = [this[j], this[i]];
+         }
+
+         //high up the cells' nearby mines number by one
+         for (let i=0; i<cells; i++)
+         {
+            if (this[i].isMine)
+            {
+               let nearbyCells = this.getNearbyCells(i, true);
+
+               for (let j=0; j<nearbyCells.length; j++)
+               {
+                  this[nearbyCells[j]].mines++;
+               }
+            }
          }
       }
 
       return this;
    }
 
-   
+
    /**
     * Returns a simplified 2D-Array version of the minefield.
     * 
@@ -66,16 +102,14 @@ export default class Minefield
 
       for (let i=0; i<this.rows; i++)
       {
-         let col = [];
+         simplified.push([]);
 
          for (let j=0; j<this.cols; j++)
          {
             let cell = this[i*this.cols+j];
 
-            col.push(cell.isMine ? -1 : cell.mines);
+            simplified[i].push(cell.isMine ? -1 : cell.mines);
          }
-
-         simplified.push(col)
       }
 
       return simplified;
@@ -92,25 +126,28 @@ export default class Minefield
     */
    openCell(cell, firstclick=this.isNew())
    {
-      cell = Math.floor(+cell);
-      if (cell < 0 || cell >= this.cells) throw new Error("Invalid cell index");
+      cell = validateNumber(cell, 0, this.cells-1);
 
       let updatedCells = [];
 
-      let openSingleCell = (cell) =>
-      {
-         this[cell].isOpen = true;
-         updatedCells.push(cell);
-      };
-
       let openIfEmptyZone = (cell) =>
       {
-         if (this[cell].mines == 0) this.getEmptyZone(cell).forEach(x => openSingleCell(x));
+         if (this[cell].mines == 0)
+         {
+            let emptyZone = this.getEmptyZone(cell);
+
+            for (let i=0; i<emptyZone.length; i++)
+            {
+               this[emptyZone[i]].isOpen = true;
+               updatedCells.push(emptyZone[i]);
+            }
+         }
       };
 
       if (this[cell].isOpen == false)
       {
-         openSingleCell(cell);
+         this[cell].isOpen = true;
+         updatedCells.push(cell);
 
          if (this[cell].isMine)
          {
@@ -138,19 +175,31 @@ export default class Minefield
       else if (this[cell].mines != 0)
       {
          let nearbyCells = this.getNearbyCells(cell);
-         let flagCount = nearbyCells.filter(x => this[x].isFlagged).length;
+         let flagCount = 0;
+
+         for (let i=0; i<nearbyCells.length; i++)
+         {
+            if (this[nearbyCells[i]].isFlagged)
+            {
+               flagCount++;
+            }
+         }
          
          if (flagCount == this[cell].mines)
          {
-            nearbyCells.forEach(x =>
+            for (let i=0; i<nearbyCells.length; i++)
             {
-               if (this[x].isFlagged == false && this[x].isOpen == false)
+               if (this[nearbyCells[i]].isFlagged == false && this[nearbyCells[i]].isOpen == false)
                {
-                  openSingleCell(x);
+                  this[nearbyCells[i]].isOpen = true;
+                  updatedCells.push(nearbyCells[i]);
 
-                  if (this[x].isMine == false) openIfEmptyZone(x);
+                  if (this[nearbyCells[i]].isMine == false)
+                  {
+                     openIfEmptyZone(nearbyCells[i]);
+                  }
                }
-            });
+            }
          }
       }
 
@@ -159,24 +208,22 @@ export default class Minefield
 
    /**
     * Checks if a minefield is solvable from a given cell (by not guessing)
-    * WARNING! This method gets resource-intensive the more the minefield is big
+    * WARNING! This method gets resource-intensive the more the minefield is big.
     * @param {Number} cell The index of the cell to open
     * @param {Boolean} restore If true, the Minefield will be restored after the function ends (default: true)
     * @returns {Boolean} A Boolean value that indicates whether the minefield is solvable from the given cell
     * @throws {Error} If parameters are invalid
     */
    isSolvableFrom(cell, restore=true)
-   {
-      cell = Math.floor(+cell);
-      if (cell < 0 || cell >= this.cells) throw new Error("Invalid cell index");
-
+   { 
+      cell = validateNumber(cell, 0, this.cells-1);
 
       let matrixIncludesArr = (matrix, arr) => JSON.stringify(matrix).includes(JSON.stringify(arr));
 
-      let firstCell = this.openCell(cell);
-      if (firstCell.length == 1)
+      let firstClick = this.openCell(cell)
+      if (firstClick.length <= 1 && this[firstClick[0]].mines != 0)
       {
-         this[firstCell[0]].isOpen == false;
+         if (restore) this[firstClick[0]].isOpen = false;
          return false;
       }
 
@@ -264,17 +311,18 @@ export default class Minefield
             }
          }
 
-         if (updates == false) //phantom bombs shifting
+         if (updates == false) //2nd try: open cells using phantom bombs
          {
             let shiftUpdates = true;
 
-            while (shiftUpdates)
+            while (shiftUpdates) //shifting & adding phantom bombs
             {
                shiftUpdates = false;
 
                for (let i of importantCells)
                {
                   let nearbyCells = this.getNearbyCells(i);
+                  let phantomGroupSum = [0];
                   
                   let closedCells = [];
                   let flaggedCells = 0;
@@ -287,26 +335,51 @@ export default class Minefield
                   
                   for (let j=0; j < phantomGroups.length; j++)
                   {
-                     let mines = this[i].mines - phantomGroups[j][0] - flaggedCells;
-
-                     if (phantomGroups[j].slice(1).every(x => closedCells.includes(x)) && mines > 0)
+                     if (phantomGroups[j].slice(1).every(x => closedCells.includes(x)) && closedCells.length != phantomGroups[j].length-1)
                      {
                         let shift = closedCells.filter(x => phantomGroups[j].includes(x, 1) == false).sort((a, b) => a - b);
+                        let shiftMines = this[i].mines - phantomGroups[j][0] - flaggedCells;
 
-                        if (shift.length > 0 && matrixIncludesArr(phantomGroups, [mines, ...shift]) == false)
+                        let shiftPhantomGroup = [shiftMines, ...shift];
+
+                        if (shift.length > 0 && shiftMines > 0 && matrixIncludesArr(phantomGroups, shiftPhantomGroup) == false)
                         {
-                           phantomGroups.push([mines, ...shift])
-                           shiftUpdates = true;
+                           let push = true;
+
+                           for (let k=0; k<phantomGroups.length; k++)
+                           {
+                              if (phantomGroups[k].every(x => shiftPhantomGroup.includes(x)))
+                              {
+                                 push = false;
+                                 break;
+                              }
+                           }
+
+                           if (push)
+                           {
+                              phantomGroups.push(shiftPhantomGroup)
+                              shiftUpdates = true;
+                           }
+                        }
+
+                        if (phantomGroups[j].slice(1).some(x => phantomGroupSum.includes(x, 1)) == false)
+                        {
+                           phantomGroupSum[0] += phantomGroups[j][0];
+                           phantomGroupSum.push(...phantomGroups[j].slice(1));
                         }
                      }
                   }
+
+                  if (phantomGroupSum[0] > 0 && matrixIncludesArr(phantomGroups, phantomGroupSum) == false)
+                  {
+                     phantomGroups.push(phantomGroupSum);
+                     shiftUpdates = true;
+                  }
                }
             }
-         }
-         
-         if (updates == false) //2nd try: open cells using phantom bombs
-         {
-            for (let i of importantCells)
+
+
+            for (let i of importantCells) //open cells using phantom bombs
             {
                let nearbyCells = this.getNearbyCells(i);
 
@@ -351,68 +424,7 @@ export default class Minefield
             }
          }
 
-         if (updates == false) //3rd try: open cells using multiple phantom bombs
-         {
-            for (let i of importantCells)
-            {
-               let nearbyCells = this.getNearbyCells(i);
-               let closedCells = nearbyCells.filter(x => this[x].isOpen == false && this[x].isFlagged == false);
-
-               let containedPhantomGroupsSum = [0];
-
-               let sum = 0;
-
-               for (let j=0; j < phantomGroups.length; j++)
-               {
-                  if (phantomGroups[j].slice(1).every(x => closedCells.includes(x)))
-                  {
-                     if (phantomGroups[j].slice(1).some(x => containedPhantomGroupsSum.includes(x, 1)) == false)
-                     {
-                        sum++;
-
-                        containedPhantomGroupsSum[0] += phantomGroups[j][0];
-                        containedPhantomGroupsSum.push(...phantomGroups[j].slice(1));
-                     }
-                  }
-               }
-
-               if (sum > 1)
-               {
-                  let flaggedCells = 0, unknownCells = [];
-   
-                  for (let k=0; k < nearbyCells.length; k++)
-                  {
-                     if (this[nearbyCells[k]].isFlagged) flaggedCells++;
-                     else if (this[nearbyCells[k]].isOpen == false && containedPhantomGroupsSum.includes(nearbyCells[k], 1) == false)
-                     {
-                        unknownCells.push(nearbyCells[k]);
-                     }
-                  }
-
-                  if (unknownCells.length > 0)
-                  {
-                     if (this[i].mines == flaggedCells + containedPhantomGroupsSum[0] + unknownCells.length) //all unknown cells are mines > flag them all
-                     {
-                        unknownCells.forEach(x => this[x].isFlagged = true);
-                        updates = true;
-                     }
-                     else if (this[i].mines == flaggedCells + containedPhantomGroupsSum[0]) //all unknown cells are clear > open them
-                     {
-                        unknownCells.forEach(x =>
-                        {
-                           if (this[x].isFlagged == false)
-                           {
-                              this[x].isOpen = true;
-                              updates = true;
-                           }
-                        })
-                     }
-                  }
-               }
-            }
-         }
-
-         if (updates == false) //4th try: open cells using remaining flags count
+         if (updates == false) //3th try: open cells using remaining flags count
          {
             if (this.usedFlags == this.mines)
             {
@@ -569,6 +581,7 @@ export default class Minefield
          for (let i of importantCells)
          {
             let nearbyCells = this.getNearbyCells(i);
+            let phantomGroupSum = [0];
             
             let closedCells = [];
             let flaggedCells = 0;
@@ -581,18 +594,45 @@ export default class Minefield
             
             for (let j=0; j < phantomGroups.length; j++)
             {
-               let mines = this[i].mines - phantomGroups[j][0] - flaggedCells;
-
-               if (phantomGroups[j].slice(1).every(x => closedCells.includes(x)) && mines > 0)
+               if (phantomGroups[j].slice(1).every(x => closedCells.includes(x)) && closedCells.length != phantomGroups[j].length-1)
                {
                   let shift = closedCells.filter(x => phantomGroups[j].includes(x, 1) == false).sort((a, b) => a - b);
+                  let shiftMines = this[i].mines - phantomGroups[j][0] - flaggedCells;
 
-                  if (shift.length > 0 && matrixIncludesArr(phantomGroups, [mines, ...shift]) == false)
+                  let shiftPhantomGroup = [shiftMines, ...shift];
+
+                  if (shift.length > 0 && shiftMines > 0 && matrixIncludesArr(phantomGroups, shiftPhantomGroup) == false)
                   {
-                     phantomGroups.push([mines, ...shift])
-                     shiftUpdates = true;
+                     let push = true;
+
+                     for (let k=0; k<phantomGroups.length; k++)
+                     {
+                        if (phantomGroups[k].every(x => shiftPhantomGroup.includes(x)))
+                        {
+                           push = false;
+                           break;
+                        }
+                     }
+
+                     if (push)
+                     {
+                        phantomGroups.push(shiftPhantomGroup)
+                        shiftUpdates = true;
+                     }
+                  }
+
+                  if (phantomGroups[j].slice(1).some(x => phantomGroupSum.includes(x, 1)) == false)
+                  {
+                     phantomGroupSum[0] += phantomGroups[j][0];
+                     phantomGroupSum.push(...phantomGroups[j].slice(1));
                   }
                }
+            }
+
+            if (phantomGroupSum[0] > 0 && matrixIncludesArr(phantomGroups, phantomGroupSum) == false)
+            {
+               phantomGroups.push(phantomGroupSum);
+               shiftUpdates = true;
             }
          }
       }
@@ -647,64 +687,7 @@ export default class Minefield
          }
       }
 
-      for (let i of importantCells) //3rd try: using multiple phantom bombs
-      {
-         let nearbyCells = this.getNearbyCells(i);
-         let closedCells = nearbyCells.filter(x => this[x].isOpen == false && this[x].isFlagged == false);
-
-         let containedPhantomGroupsSum = [0];
-
-         let sum = 0;
-         
-         for (let j=0; j < phantomGroups.length; j++)
-         {
-            if (phantomGroups[j].slice(1).every(x => closedCells.includes(x)))
-            {
-               if (phantomGroups[j].slice(1).some(x => containedPhantomGroupsSum.includes(x, 1)) == false)
-               {
-                  sum++;
-                  
-                  containedPhantomGroupsSum[0] += phantomGroups[j][0];
-                  containedPhantomGroupsSum.push(...phantomGroups[j].slice(1));
-               }
-            }
-         }
-
-         if (sum > 1)
-         {
-            let flaggedCells = 0, unknownCells = [];
-
-            for (let k=0; k < nearbyCells.length; k++)
-            {
-               if (this[nearbyCells[k]].isFlagged) flaggedCells++;
-               else if (this[nearbyCells[k]].isOpen == false && containedPhantomGroupsSum.includes(nearbyCells[k], 1) == false)
-               {
-                  unknownCells.push(nearbyCells[k]);
-               }
-            }
-
-            if (unknownCells.length > 0)
-            {
-               if (this[i].mines == flaggedCells + containedPhantomGroupsSum[0] + unknownCells.length) //all unknown cells are mines > flag them all
-               {
-                  hintCells.push(["F", ...new Set([...nearbyCells, ...containedPhantomGroupsSum.slice(1), i])]);
-                  accurateHintCells.push(["F", ...unknownCells]);
-               }
-               else if (this[i].mines == flaggedCells + containedPhantomGroupsSum[0]) //all unknown cells are clear > open them
-               {
-                  unknownCells = unknownCells.filter(x => this[x].isFlagged == false);
-
-                  if (unknownCells.length > 0)
-                  {
-                     hintCells.push(["O", ...new Set([...nearbyCells, ...containedPhantomGroupsSum.slice(1), i])]);
-                     accurateHintCells.push(["O", ...unknownCells]);
-                  }
-               }
-            }
-         }
-      }
-
-      if (this.usedFlags == this.mines) //4th try: using remaining flags count
+      if (this.usedFlags == this.mines) //3th try: using remaining flags count
       {
          let closedCells = [];
 
@@ -759,7 +742,7 @@ export default class Minefield
       return accurateHint ? accurateHintCells : hintCells;
    }
 
-   
+
    /**
     * Calculates nearby mines number for each cell and assigns the value*/
    resetMines()
@@ -770,7 +753,12 @@ export default class Minefield
       {
          if (this[i].isMine)
          {
-            this.getNearbyCells(i).forEach(cell => this[cell].mines++)
+            let nearbyCells = this.getNearbyCells(i, true);
+
+            for (let j=0; j<nearbyCells.length; j++)
+            {
+               this[nearbyCells[j]].mines++;
+            }
          }
       }
    }
@@ -791,41 +779,36 @@ export default class Minefield
     */
    getNearbyCells(cell, getCell=false)
    {
-      cell = Math.floor(+cell);
-      if (cell < 0 || cell >= this.cells) throw new Error("Invalid cell index");
+      cell = validateNumber(cell, 0, this.cells-1);
       
-      let nearbyPos = [
-         cell-this.cols-1, //up left
-         cell-this.cols,   //up
-         cell-this.cols+1, //up right
-         cell-1,           //left
-         cell+1,           //right
-         cell+this.cols-1, //down left
-         cell+this.cols,   //down
-         cell+this.cols+1  //down right
-      ];
-
       let nearbyCells = [];
 
-      if (getCell) nearbyCells.push(cell)                               //center
+      let cellRow = Math.floor(cell / this.cols);
+      let isNotFirstRow = cellRow > 0;
+      let isNotLastRow = cellRow < this.rows-1;
 
-      if (nearbyPos[1] >= 0        ) nearbyCells.push(nearbyPos[1]);    //up
-      if (nearbyPos[6] < this.cells) nearbyCells.push(nearbyPos[6]);    //down
+      let cellCol = cell % this.cols;
 
-      if (this.getCellCol(cell) != 0) //if cell isn't on first column
+
+      if (getCell) nearbyCells.push(cell)                       //center
+
+      if (isNotFirstRow) nearbyCells.push(cell-this.cols);      //up
+      if (isNotLastRow ) nearbyCells.push(cell+this.cols);      //down
+
+      if (cellCol > 0) //if cell isn't on first column
       {
-         nearbyCells.push(nearbyPos[3]);                                //left
+         nearbyCells.push(cell-1);                              //left
 
-         if (nearbyPos[0] >= 0        ) nearbyCells.push(nearbyPos[0]); //up left
-         if (nearbyPos[5] < this.cells) nearbyCells.push(nearbyPos[5]); //down left
+         if (isNotFirstRow) nearbyCells.push(cell-this.cols-1); //up left
+         if (isNotLastRow ) nearbyCells.push(cell+this.cols-1); //down left
       }
 
-      if (this.getCellCol(cell+1) != 0) //if cell isn't on last column
+      if (cellCol < this.cols-1) //if cell isn't on last column
       {
-         nearbyCells.push(nearbyPos[4]);                                //right
+         nearbyCells.push(cell+1);                              //right
          
-         if (nearbyPos[2] >= 0        ) nearbyCells.push(nearbyPos[2]); //up right
-         if (nearbyPos[7] < this.cells) nearbyCells.push(nearbyPos[7]); //down right
+         if (isNotFirstRow) nearbyCells.push(cell-this.cols+1); //up right
+         if (isNotLastRow ) nearbyCells.push(cell+this.cols+1); //down right
       }
 
       return nearbyCells;
@@ -838,39 +821,100 @@ export default class Minefield
     */
    getEmptyZone(cell, includeFlags=false)
    {
-      cell = Math.floor(+cell);
-      if (cell < 0 || cell >= this.cells) throw new Error("Invalid cell index");
+      const widthIndex = this.cols;
+      const startMines = 0;
 
+      if (this[cell].mines != startMines) return [];
 
-      let emptyCells = [cell];
+      let fullStack = new Set();
+      let topStack = [cell];
 
-      for (let i=0; i < emptyCells.length; i++)
+      while(topStack.length)
       {
-         if (this[emptyCells[i]].mines == 0)
-         {
-            let nearbyCells = this.getNearbyCells(emptyCells[i]);
+         let curCell = topStack.pop();
 
-            if (includeFlags)
+         while(Math.floor(curCell / this.cols) >= 0 && this[curCell].mines == startMines)
+         {
+            curCell -= widthIndex;
+         }
+
+         curCell += widthIndex;
+
+         let reachLeft = false;
+         let reachRight = false;
+
+         while (Math.floor(curCell / this.cols) < this.rows && this[curCell].mines == startMines)
+         {
+            fullStack.add(curCell);
+
+            if (curCell % this.cols > 0)
             {
-               for (let j=0; j < nearbyCells.length; j++)
+               if (this[curCell-1].mines == startMines && fullStack.has(curCell-1) == false)
                {
-                  if (emptyCells.includes(nearbyCells[j]) == false)
+                  if (reachLeft == false)
                   {
-                     emptyCells.push(nearbyCells[j]);
+                     topStack.push(curCell-1);
+                     reachLeft = true;
                   }
                }
+
+               else if (reachLeft) reachLeft = false;
             }
-            else for (let j=0; j < nearbyCells.length; j++)
+
+            if (curCell % this.cols < this.cols-1)
             {
-               if (emptyCells.includes(nearbyCells[j]) == false && this[nearbyCells[j]].isFlagged == false)
+               if (this[curCell+1].mines == startMines && fullStack.has(curCell+1) == false)
                {
-                  emptyCells.push(nearbyCells[j]);
+                  if (reachRight == false)
+                  {
+                     topStack.push(curCell+1);
+                     reachRight = true;
+                  }
+               }
+               
+               else if (reachRight) reachRight = false;
+            }
+
+            curCell += widthIndex;
+         }
+      }
+
+      let marginStack = new Set();
+
+      if (includeFlags)
+      {
+         for (let cell of fullStack)
+         {
+            let nearbyCells = this.getNearbyCells(cell);
+   
+            for (let j=0; j<nearbyCells.length; j++)
+            {
+               if (this[nearbyCells[j]].mines != startMines)
+               {
+                  marginStack.add(nearbyCells[j])
+               }
+            }
+         }
+      }
+      else
+      {
+         for (let cell of fullStack)
+         {
+            if (this[cell].isFlagged) fullStack.delete(cell);
+   
+            let nearbyCells = this.getNearbyCells(cell);
+   
+            for (let j=0; j<nearbyCells.length; j++)
+            {
+               if (this[nearbyCells[j]].mines != startMines && this[nearbyCells[j]].isFlagged == false)
+               {
+                  marginStack.add(nearbyCells[j])
                }
             }
          }
       }
 
-      return emptyCells;
+      return [...fullStack, ...marginStack];
    }
 
 
@@ -880,9 +924,9 @@ export default class Minefield
     */
    getCellRow(cell)
    {
-      cell = Math.abs(Math.floor(+cell));
+      cell = validateNumber(cell);
       
-      return (cell / this.cols) | 0;
+      return Math.floor(cell / this.cols);
    }
    /**
     * @param {Number} cell The index of the concerned cell
@@ -890,7 +934,7 @@ export default class Minefield
     */
    getCellCol(cell)
    {
-      cell = Math.abs(Math.floor(+cell));
+      cell = validateNumber(cell);
 
       return cell % this.cols;
    }
@@ -901,7 +945,7 @@ export default class Minefield
     */
    getCellIndex(row, col)
    {
-      row = Math.abs(Math.floor(+row)), col = Math.abs(Math.floor(+col));
+      row = validateNumber(row), col = validateNumber(col);
 
       return row*this.cols + col;
    }
@@ -1008,6 +1052,28 @@ export default class Minefield
     */
    get usedFlags()
    {
-      return this.getCellArray().filter(x => x.isFlagged).length;
+      let flags = 0;
+
+      for (let i=0; i<this.cells; i++)
+      {
+         if (this[i].isFlagged) flags++;
+      }
+
+      return flags;
    }
+};
+
+function validateNumber(num, min=-Infinity, max=Infinity)
+{
+   try
+   {
+      num = Math.trunc(min >= 0 ? Math.abs(+num) : +num);
+      if (isNaN(num)) throw new Error();
+   }
+   catch {throw new Error("Invalid parameter type");}
+   
+   if (num < min) throw new Error("Parameter value is too small");
+   if (num > max) throw new Error("Parameter value is too big");
+
+   return num;
 };
