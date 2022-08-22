@@ -3,9 +3,10 @@ A Minesweeper class engine that can be used to easily create minefields and play
 [Here's what you can do using it](https://github.com/zWolfrost/JSMinesweeper).
 
 Supports:
-- Lots of useful logic functions such as "**openCell**" and "**getHint**" ([see below their use](#methods));
+- Lots of useful logic functions such as "**openCell**" and "**getHint**" ([see below their use](#minefield-object-methods));
 - **Minefield Auto-Solving Algorithm** (useful when wanting to make no-guess minefields);
 - **Current minefield state functions** (it's going on, it's over etc.);
+- Possibility to **switch** from a 1D-Array Minefield to a 2D-Array one depending on your taste;
 - **Used flags count**;
 - **Visual Debugging**;
 
@@ -23,43 +24,63 @@ or just copy the file from the [src directory](src/minesweeper.js)
 
 &nbsp;
 # How to use
+
+**WARNING! IN VERSION v2.0.0+ THE "ROWS" AND "COLS" PARAMETERS WERE CHANGED TO "WIDTH" AND "HEIGHT" FOR UNDERSTANDING PURPOSES**
+
+&nbsp;
 ```
 import Minefield from "path/to/minesweeper.js"
 let minefield = new Minefield(2, 5, 3);
 ```
 
 Creates a 2x5 minefield with 3 mines, which is an object containing:
- - rows:  The minefield rows
- - cols:  The minefield columns
- - cells: The minefield total cells number
- - mines: The minefield total mines number
- - [0...9]:           Each minefield cell on its index (2x5 thus 0 to 9 in this case)
-   - [0...9].isOpen:    Whether a cell is revealed
-   - [0...9].isMine:    Whether a cell is a mine
-   - [0...9].isFlagged: Whether a cell is flagged
-   - [0...9].mines:     Number of mines present around a cell
+ - `width`:  The minefield width (n. of columns)
+ - `height`: The minefield height (n. of rows)
+ - `cells`:  The minefield total cells number
+ - `mines`:  The minefield total mines number
+ - `[0...9]`:           Each minefield cell on its index (2x5 thus 0 to 9 in this case)
+   - `[0...9].isOpen`:    Whether a cell is revealed
+   - `[0...9].isMine`:    Whether a cell is a mine
+   - `[0...9].isFlagged`: Whether a cell is flagged
+   - `[0...9].mines`:     Number of mines present around a cell
 
+&nbsp;
+```
+let minefield2d = minefield.toMinefield2D();
+```
 
-## Methods
-#### Full accurate description of methods here mentioned available in JSDOC Comments
+Creates a Minefield2D Object that is very similar to a Minefield one with the only difference being that, instead of having cells in the same array, the minefield is like a 2D Array.
+- `[0][0...4].isOpen, isMine, ecc.` 
+- `[1][0...4].isOpen, isMine, ecc.` 
+- `width, height, ecc.`
 
-|      Method      | Short Description
-|:----------------:|:-
-| simplify         | Returns a simplified 2D-Array version of the minefield.
-| openCell         | Opens a given cell and may open nearby ones following the minesweeper game rules. Can also get the index of an already open cell that matches its nearby mines number with its nearby flags to open all of its nearby non-flagged cells.
-| isSolvableFrom   | Checks if a minefield is solvable from a given cell (by not guessing).
-| getHint          | Checks the minefield to find hints about its state.
-| resetMines       | Calculates nearby mines number for each cell and assigns the value.
-| getCellArray     | Returns an Array containing only the cells of the Minefield object.
-| getNearbyCells   | Returns an Array containing the indexes of the cells directly around the given one.
-| getEmptyZone     | Returns an Array containing the indexes of the empty cells zone starting from the given one.
-| getCellRow       | Returns a Number that indicates the row the given cell is in (0-based).
-| getCellCol       | Returns a Number that indicates the column the given cell is in (0-based).
-| getCellIndex     | Returns a Number that indicates the index of the cell that is in the specified row and column.
-| isNew            | Returns a Boolean value that indicates whether the game is new (before the first move).
-| isGoingOn        | Returns a Boolean value that indicates whether the game is going on (after the first move, before game over).
-| isOver           | Returns a Boolean value that indicates whether the game is over (both cleared or lost).
-| isCleared        | Returns a Boolean value that indicates whether the minefield has been cleared (no mines opened).
-| isLost           | Returns a Boolean value that indicates whether a mine has been opened in the current minefield.
-| visualDebug      | Console logs the minefield in a visual way.
-| usedFlags        | (getter) A Number that indicates the used flags in the current minefield.
+&nbsp;
+## Minefield Object Methods
+
+| Method            | Description                                                                                                                                                                                                                                                        | Parameters                                                                                                                                                                                                                                                                                                |
+|:-----------------:|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **new Minefield** | Creates a "Minefield" Object.                                                                                                                                                                                                                                      | <ul><li>The **width** of the minefield (n. of columns).</li><li>The **height** of the minefield (n. of rows).</li><li>The **mines** number/placements.</li><li>An optional **randomizer** that is useful in case you want to make a seed system (default: Math.random).</li></ul>                         |
+| toMinefield2D     | Returns a "[Minefield2D](#minefield2d-object-methods)" Object, based on your "Minefield" Object. Note that the two share the same addresses to the same cells, so a change on one will reflect on the other                                                        |                                                                                                                                                                                                                                                                                                           |
+| openCell          | Opens a given cell and may open nearby ones following the minesweeper game rules.<br>Can also use the index of an already open cell that matches its nearby-mines number with its nearby flags to open all of its nearby non-flagged cells.                        | <ul><li>The **index** of the cell to open.</li><li>A boolean value "**firstclick**" that indicates whether the method is executed on a new game or not (default: isNew()). If it's true, and a bomb is opened, it will be moved in another cell starting from 0.</li></ul>                                |
+| isSolvableFrom    | Checks if a minefield is solvable from a given cell (by not guessing).                                                                                                                                                                                             | <ul><li>The **index** of the cell where to start.</li><li>A boolean value "**restore**". If true, the minefield will be fully re-closed after the method's execution (default: true).</li></ul>                                                                                                           |
+| getHint           | Returns an array of indexes of hint cells about a minefield's state.                                                                                                                                                                                               | <ul><li>A boolean value "**accurateHint**" that indicates whether the hint will be the exact cells or more "in the area" (default: false).</li><li>Another optional boolean value "**getOneHint**" that indicates whether to return only an hint (1D array) or more (2D array) (default: true).</li></ul> |
+| resetMines        | Resets the nearby-mines number for each cell in the current minefield.                                                                                                                                                                                             |                                                                                                                                                                                                                                                                                                           |
+| getCellArray      | Returns an Array containing only the cells of the Minefield object.                                                                                                                                                                                                |                                                                                                                                                                                                                                                                                                           |
+| getNearbyCells    | Returns an Array containing the indexes of the cells directly around the given one.                                                                                                                                                                                | <ul><li>The **index** of the desired cell.</li><li>A boolean value "**includeSelf**". If true, the index of the given cell will also be included (default: false).</li></ul>                                                                                                                              |
+| getEmptyZone      | Returns an Array containing the indexes of the empty cells zone starting from the given one. Also uses a flood fill algorithm and sets, so it will be fairly fast.                                                                                                 | <ul><li>The **index** of the cell where to start.</li><li>A boolean value "**includeFlags**". If true, the flagged cells will be included in the result (default: false).</li></ul>                                                                                                                       |
+| getCellCords      | Returns an array that has the X and Y cords of the desired cell at index 0 and 1 respectively.                                                                                                                                                                     | <ul><li>The **index** of the desired cell.</li></ul>                                                                                                                                                                                                                                                      |
+| getCellIndex      | Returns a Number that indicates the index of the cell that is in the specified X and Y coordinates.                                                                                                                                                                | <ul><li>The **x** coordinate of the desired cell.</li><li>The **y** coordinate of the desired cell.</li></ul>                                                                                                                                                                                             |
+| isNew             | Returns a Boolean value that indicates whether the game is new (before the first move).                                                                                                                                                                            |                                                                                                                                                                                                                                                                                                           |
+| isGoingOn         | Returns a Boolean value that indicates whether the game is going on (after the first move, before game over).                                                                                                                                                      |                                                                                                                                                                                                                                                                                                           |
+| isOver            | Returns a Boolean value that indicates whether the game is over (both cleared or lost).                                                                                                                                                                            |                                                                                                                                                                                                                                                                                                           |
+| isCleared         | Returns a Boolean value that indicates whether the minefield has been cleared (no mines opened).                                                                                                                                                                   |                                                                                                                                                                                                                                                                                                           |
+| isLost            | Returns a Boolean value that indicates whether a mine has been opened in the current minefield.                                                                                                                                                                    |                                                                                                                                                                                                                                                                                                           |
+| visualDebug       | Console logs the minefield in a visual way.                                                                                                                                                                                                                        | <ul><li>A boolean value "**allsee**". If true, every cell will be showed as if they were open (default: false)</li></ul>                                                                                                                                                                                  |
+| usedFlags         | (getter) A Number that indicates the used flags in the current minefield.                                                                                                                                                                                          |                                                                                                                                                                                                                                                                                                           |
+
+&nbsp;
+## Minefield2D Object Methods
+
+The Minefield2D Methods are **completely the same** as the Minefield ones with the only difference being that every index, that being parameter or result, is changed with X and Y coordinates.
+
+Also the "**toMinefield2D**" Method is replaced with "toMinefield" which is conceptually the same.

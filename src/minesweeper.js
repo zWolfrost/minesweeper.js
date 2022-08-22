@@ -1,7 +1,7 @@
 /**
  * An Object containing:
- * @property {Number}  rows          - The minefield rows
- * @property {Number}  cols          - The minefield columns
+ * @property {Number}  width         - The minefield width
+ * @property {Number}  height        - The minefield height
  * @property {Number}  cells         - The minefield total cells number
  * @property {Number}  mines         - The minefield total mines number
  * @property {Object}  [X]           - Each minefield cell on its index ([0]..[99]+)
@@ -13,24 +13,59 @@
 export default class Minefield
 {
    /**
-    * Creates a new minefield with the given rows, columns and mines number (and randomizes them)
-    * @param {Number} rows The number of rows of the minefield
-    * @param {Number} cols The number of columns of the minefield
-    * @param {Number} mines The number of total mines (default: rows*cols/5). If array given, the values of the array will be the indexes where the mines will be placed
+    * Creates a new minefield with the given width, height and mines number (and randomizes them)
+    * @param {Number} width The width of the minefield
+    * @param {Number} height The height of the minefield
+    * @param {Number} mines The number of total mines (default: width*height/5). If array given, the values of the array will be the indexes where the mines will be placed
     * @param {Function} randomizer A function that returns a random decimal number between 0 and 1 (default: {@link Math.random})
     * @returns {Minefield} A new Minefield object
     * @throws {Error} If parameters are invalid
     */
-   constructor(rows, cols, mines = Math.floor(rows*cols/5), randomizer = Math.random)
+   constructor(width, height, mines = Math.floor(width*height/5), randomizer = Math.random)
    {
-      rows = validateNumber(rows, 0), cols = validateNumber(cols, 0);
+      function minefieldGetNearbyCells(minefield, cell)
+      {
+         cell = validateNumber(cell, 0, minefield.cells-1);
+         
+         let nearbyCells = [cell];
+   
+         let x = cell % minefield.width;
+         let y = Math.floor(cell / minefield.width);
+   
+         let isNotFirstRow = y > 0;
+         let isNotLastRow = y < minefield.height-1;
+   
 
-      let cells = rows*cols;
+         if (isNotFirstRow) nearbyCells.push(cell-minefield.width);      //up
+         if (isNotLastRow ) nearbyCells.push(cell+minefield.width);      //down
+   
+         if (x > 0) //if cell isn't on first column
+         {
+            nearbyCells.push(cell-1);                                    //left
+   
+            if (isNotFirstRow) nearbyCells.push(cell-minefield.width-1); //up left
+            if (isNotLastRow ) nearbyCells.push(cell+minefield.width-1); //down left
+         }
+   
+         if (x < minefield.width-1) //if cell isn't on last column
+         {
+            nearbyCells.push(cell+1);                                    //right
+            
+            if (isNotFirstRow) nearbyCells.push(cell-minefield.width+1); //up right
+            if (isNotLastRow ) nearbyCells.push(cell+minefield.width+1); //down right
+         }
+   
+         return nearbyCells;
+      }
+
+      width = validateNumber(width, 0), height = validateNumber(height, 0);
+
+      let cells = width*height;
 
       if (Array.isArray(mines))
       {
          //assign properties to minefield
-         Object.assign(this, {rows: rows, cols: cols, cells: cells, mines: mines.length});
+         Object.assign(this, {width: width, height: height, cells: cells, mines: mines.length});
          
          //assign properties to cells and add mines
          for (let i=0; i<cells; i++)
@@ -42,8 +77,8 @@ export default class Minefield
          for (let i=0; i<mines.length; i++)
          {
             this[mines[i]].isMine = true;
-
-            let nearbyCells = this.getNearbyCells(mines[i], true);
+            
+            let nearbyCells = minefieldGetNearbyCells(this, mines[i]);
 
             for (let j=0; j<nearbyCells.length; j++)
             {
@@ -56,7 +91,7 @@ export default class Minefield
          mines = validateNumber(mines, 0, cells);
 
          //assign properties to minefield
-         Object.assign(this, {rows: rows, cols: cols, cells: cells, mines: mines});
+         Object.assign(this, {width: width, height: height, cells: cells, mines: mines});
          
          //assign properties to cells and add mines
          for (let i=0; i<cells; i++)
@@ -76,7 +111,7 @@ export default class Minefield
          {
             if (this[i].isMine)
             {
-               let nearbyCells = this.getNearbyCells(i, true);
+               let nearbyCells = minefieldGetNearbyCells(this, i);
 
                for (let j=0; j<nearbyCells.length; j++)
                {
@@ -91,34 +126,32 @@ export default class Minefield
 
 
    /**
-    * Returns a simplified 2D-Array version of the minefield.
+    * Converts the Minefield object to a Minefield2D object.
     * 
-    *  - -1: A mine
-    *  - [0-8]: A cell with the number of nearby mines
+    * WARNING! The two objects will share the same reference to the same cells so any changes made to one will be reflected in the other
+    * @returns {Minefield2D} A Minefield2D object
     */
-   simplify()
+   toMinefield2D()
    {
-      let simplified = [];
+      let minefield2D = new Minefield2D(this.width, this.height)
 
-      for (let i=0; i<this.rows; i++)
+      for (let i=0; i<this.width; i++)
       {
-         simplified.push([]);
-
-         for (let j=0; j<this.cols; j++)
+         for (let j=0; j<this.height; j++)
          {
-            let cell = this[i*this.cols+j];
-
-            simplified[i].push(cell.isMine ? -1 : cell.mines);
+            delete minefield2D[i][j];
+            minefield2D[i][j] = this[i+j*this.width];
          }
       }
 
-      return simplified;
+      return minefield2D;
    }
 
 
    /**
-    *  - Opens a given cell and may open nearby ones following the minesweeper game rules.
-    *  - Can also give the index of an already open cell that matches its nearby mines number with its nearby flags to automatically open all of its nearby not-flagged cells 
+    * Opens a given cell and may open nearby ones following the minesweeper game rules.
+    * 
+    * Can also give the index of an already open cell that matches its nearby mines number with its nearby flags to automatically open all of its nearby not-flagged cells 
     * @param {Number} cell The index of the cell to open
     * @param {Boolean} firstclick If true, and a bomb is opened, it will be moved in another cell starting from 0 (default: {@link isNew()})
     * @returns {Array.<number>} An array containing the indexes of the updated cells
@@ -132,15 +165,12 @@ export default class Minefield
 
       let openIfEmptyZone = (cell) =>
       {
-         if (this[cell].mines == 0)
-         {
-            let emptyZone = this.getEmptyZone(cell);
+         let emptyZone = this.getEmptyZone(cell);
 
-            for (let i=0; i<emptyZone.length; i++)
-            {
-               this[emptyZone[i]].isOpen = true;
-               updatedCells.push(emptyZone[i]);
-            }
+         for (let i=0; i<emptyZone.length; i++)
+         {
+            this[emptyZone[i]].isOpen = true;
+            updatedCells.push(emptyZone[i]);
          }
       };
 
@@ -208,8 +238,9 @@ export default class Minefield
 
    /**
     * Checks if a minefield is solvable from a given cell (by not guessing)
+    * 
     * WARNING! This method gets resource-intensive the more the minefield is big.
-    * @param {Number} cell The index of the cell to open
+    * @param {Number} cell The index of the cell where to start
     * @param {Boolean} restore If true, the Minefield will be restored after the function ends (default: true)
     * @returns {Boolean} A Boolean value that indicates whether the minefield is solvable from the given cell
     * @throws {Error} If parameters are invalid
@@ -484,7 +515,7 @@ export default class Minefield
     * Checks the minefield to find hints about its state
     * @param {Boolean} accurateHint If false, the function will return the nearby cells around the hint. If true, it will only return the exact cells to open/flag. (default: false)
     * @param {Boolean} getOneHint If true, the function will only return a single hint (the first one found starting from the top) (default: true)
-    * @returns {Array.<Array.<any>>} An array containing arrays of the indexes of hint cells + a char value at index 0 of each (O/F) indicating if the hint is about opening or flagging cells
+    * @returns {Array.<any>} An array containing arrays of the indexes of hint cells + a char value at index 0 of each (O/F) indicating if the hint is about opening or flagging cells
     * @example minefield.getHint(false, false) //returns [['O', 6, 7, 8], ['F', 15, 25, 35]]
     */
    getHint(accurateHint=false, getOneHint=true)
@@ -739,7 +770,7 @@ export default class Minefield
          accurateHintCells = accurateHintCells[0];
       }
 
-      return accurateHint ? accurateHintCells : hintCells;
+      return (accurateHint ? accurateHintCells : hintCells) ?? [];
    }
 
 
@@ -773,47 +804,48 @@ export default class Minefield
    }
    /**
     * @param {Number} cell The index of the concerned cell
-    * @param {Number} getCell Also return the index of the concerned cell, along with the nearby ones (default: false)
+    * @param {Boolean} includeSelf If true, also include the index of the concerned cell (default: false)
     * @returns {Array.<number>} An Array containing the indexes of the cells directly around the given one
     * @throws {Error} If parameters are invalid
     */
-   getNearbyCells(cell, getCell=false)
+   getNearbyCells(cell, includeSelf=false)
    {
       cell = validateNumber(cell, 0, this.cells-1);
       
       let nearbyCells = [];
 
-      let cellRow = Math.floor(cell / this.cols);
-      let isNotFirstRow = cellRow > 0;
-      let isNotLastRow = cellRow < this.rows-1;
+      let x = cell % this.width;
+      let y = Math.floor(cell / this.width);
 
-      let cellCol = cell % this.cols;
+      let isNotFirstRow = y > 0;
+      let isNotLastRow = y < this.height-1;
 
 
-      if (getCell) nearbyCells.push(cell)                       //center
+      if (includeSelf ) nearbyCells.push(cell)                 //center
 
-      if (isNotFirstRow) nearbyCells.push(cell-this.cols);      //up
-      if (isNotLastRow ) nearbyCells.push(cell+this.cols);      //down
+      if (isNotFirstRow) nearbyCells.push(cell-this.width);      //up
+      if (isNotLastRow ) nearbyCells.push(cell+this.width);      //down
 
-      if (cellCol > 0) //if cell isn't on first column
+      if (x > 0) //if cell isn't on first column
       {
          nearbyCells.push(cell-1);                              //left
 
-         if (isNotFirstRow) nearbyCells.push(cell-this.cols-1); //up left
-         if (isNotLastRow ) nearbyCells.push(cell+this.cols-1); //down left
+         if (isNotFirstRow) nearbyCells.push(cell-this.width-1); //up left
+         if (isNotLastRow ) nearbyCells.push(cell+this.width-1); //down left
       }
 
-      if (cellCol < this.cols-1) //if cell isn't on last column
+      if (x < this.width-1) //if cell isn't on last column
       {
          nearbyCells.push(cell+1);                              //right
          
-         if (isNotFirstRow) nearbyCells.push(cell-this.cols+1); //up right
-         if (isNotLastRow ) nearbyCells.push(cell+this.cols+1); //down right
+         if (isNotFirstRow) nearbyCells.push(cell-this.width+1); //up right
+         if (isNotLastRow ) nearbyCells.push(cell+this.width+1); //down right
       }
 
       return nearbyCells;
    }
    /**
+    * Uses a flood fill algorithm to find all the cells that have 0 mines nearby
     * @param {Number} cell The index of the concerned cell
     * @param {Boolean} includeFlags If true, the flagged cells will be included in the empty zone (default: false)
     * @returns {Array.<number>} An Array containing the indexes of the empty cells zone starting from the given one
@@ -821,7 +853,7 @@ export default class Minefield
     */
    getEmptyZone(cell, includeFlags=false)
    {
-      const widthIndex = this.cols;
+      const widthIndex = this.width;
       const startMines = 0;
 
       if (this[cell].mines != startMines) return [];
@@ -833,7 +865,7 @@ export default class Minefield
       {
          let curCell = topStack.pop();
 
-         while(Math.floor(curCell / this.cols) >= 0 && this[curCell].mines == startMines)
+         while(curCell >= 0 && this[curCell].mines == startMines)
          {
             curCell -= widthIndex;
          }
@@ -843,11 +875,11 @@ export default class Minefield
          let reachLeft = false;
          let reachRight = false;
 
-         while (Math.floor(curCell / this.cols) < this.rows && this[curCell].mines == startMines)
+         while (curCell < this.cells && this[curCell].mines == startMines)
          {
             fullStack.add(curCell);
 
-            if (curCell % this.cols > 0)
+            if (curCell % widthIndex > 0)
             {
                if (this[curCell-1].mines == startMines && fullStack.has(curCell-1) == false)
                {
@@ -861,7 +893,7 @@ export default class Minefield
                else if (reachLeft) reachLeft = false;
             }
 
-            if (curCell % this.cols < this.cols-1)
+            if (curCell % widthIndex < widthIndex-1)
             {
                if (this[curCell+1].mines == startMines && fullStack.has(curCell+1) == false)
                {
@@ -919,35 +951,25 @@ export default class Minefield
 
 
    /**
-    * @param {Number} cell The index of the concerned cell
-    * @returns {Number} A Number that indicates the row the given cell is in (0-based)
+    * @param {Number} cell The index of the desired cell
+    * @returns {Array<Number>} An array that has the x and y cords of the desired cell at index 0 and 1 respectively
     */
-   getCellRow(cell)
-   {
-      cell = validateNumber(cell);
-      
-      return Math.floor(cell / this.cols);
-   }
-   /**
-    * @param {Number} cell The index of the concerned cell
-    * @returns {Number} A Number that indicates the column the given cell is in (0-based)
-    */
-   getCellCol(cell)
+   getCellCords(cell)
    {
       cell = validateNumber(cell);
 
-      return cell % this.cols;
+      return [cell % this.width, Math.floor(cell/this.width)];
    }
    /**
-    * @param {Number} row The row of the desired cell
-    * @param {Number} col The column of the desired cell
+    * @param {Number} x The X coordinate of the desired cell
+    * @param {Number} y The Y coordinate of the desired cell
     * @returns {Number} A Number that indicates the index of the cell that is in the specified row and column
     */
-   getCellIndex(row, col)
+   getCellIndex(x, y)
    {
-      row = validateNumber(row), col = validateNumber(col);
+      x = validateNumber(x), y = validateNumber(y);
 
-      return row*this.cols + col;
+      return x + y*this.width;
    }
 
 
@@ -956,7 +978,12 @@ export default class Minefield
     */
    isNew()
    {
-      return this.getCellArray().some(x => x.isOpen) == false;
+      for (let i=0; i < this.cells; i++)
+      {
+         if (this[i].isOpen) return false;
+      }
+
+      return true;
    }
    /**
     * @returns {Boolean} a Boolean value that indicates whether the game is going on (after the first move, before game over)
@@ -1009,7 +1036,12 @@ export default class Minefield
     */
    isLost()
    {
-      return this.getCellArray().some(x => x.isOpen && x.isMine);
+      for (let i=0; i < this.cells; i++)
+      {
+         if (this[i].isOpen && this[i].isMine) return true;
+      }
+
+      return false;
    }
 
 
@@ -1038,8 +1070,8 @@ export default class Minefield
          }
          else if (this[i].isMine == true) cell += "X";
          else cell += this[i].mines;
-
-         if (this.getCellCol(i+1) == 0) text += cell + "\n";
+         
+         if ((i+1) % this.width == 0) text += cell + "\n";
          else text += cell + " ";
       }
 
@@ -1062,6 +1094,385 @@ export default class Minefield
       return flags;
    }
 };
+
+/**
+ * An Object containing:
+ * @property {Number}  width         - The minefield width
+ * @property {Number}  height        - The minefield height
+ * @property {Number}  cells         - The minefield total cells number
+ * @property {Number}  mines         - The minefield total mines number
+ * @property {Object}  [X][Y]           - Each minefield cell on its coordinates
+ * @property {Boolean} [X][Y].isOpen    - Whether a cell is revealed
+ * @property {Boolean} [X][Y].isMine    - Whether a cell is a mine
+ * @property {Boolean} [X][Y].isFlagged - Whether a cell is flagged
+ * @property {Number}  [X][Y].mines     - Number of mines present around a cell
+ */
+class Minefield2D extends Minefield
+{
+   constructor(width, height, mines = Math.floor(width*height/5), randomizer = Math.random)
+   {
+      super(width, height, mines, randomizer);
+
+      let minefield2D = [];
+
+      for (let i=0; i<width; i++)
+      {
+         minefield2D.push([]);
+
+         for (let j=0; j<height; j++)
+         {
+            minefield2D[i][j] = this[i+j*width];
+         }
+      }
+
+      for (let i=0; i<this.cells; i++) delete this[i];
+      Object.assign(this, minefield2D);
+
+      return this;
+   }
+
+   
+   /**
+    * Converts the Minefield2D object to a Minefield object.
+    * 
+    * WARNING! The two objects will share the same reference to the same cells so any changes made to one will be reflected in the other
+    * @returns {Minefield} A Minefield object
+    */
+   toMinefield()
+   {
+      let minefield = new Minefield(this.width, this.height);
+
+      for (let i=0; i<this.width; i++)
+      {
+         for (let j=0; j<this.height; j++)
+         {
+            delete minefield[i+j*this.width];
+            minefield[i+j*this.width] = this[i][j];
+         }
+      }
+
+      return minefield;
+   }
+
+
+   /**
+    *  - Opens a given cell and may open nearby ones following the minesweeper game rules.
+    *  - Can also give the coordinates of an already open cell that matches its nearby mines number with its nearby flags to automatically open all of its nearby not-flagged cells 
+    * @param {Number} x The X coordinate of the cell to open
+    * @param {Number} y The Y coordinate of the cell to open
+    * @param {Boolean} firstclick If true, and a bomb is opened, it will be moved in another cell starting from 0 (default: {@link isNew()})
+    * @returns {Array.<Array.<number>>} An array containing arrays with the coordinates of the updated cells
+    * @throws {Error} If parameters are invalid
+    */
+   openCell(x, y, firstclick=this.isNew())
+   {
+      x = validateNumber(x, 0, this.width-1), y = validateNumber(y, 0, this.height-1);
+
+      let minefield = this.toMinefield();
+      let cell = minefield.getCellIndex(x, y)
+
+      let res = minefield.openCell(cell, firstclick);
+
+      let res2D = [];
+
+      for (let i=0; i<res.length; i++)
+      {
+         res2D.push(minefield.getCellCords(res[i]));
+      }
+
+      return res2D;
+   }
+
+   /**
+    * Checks if a minefield is solvable from a given cell (by not guessing)
+    * 
+    * WARNING! This method gets resource-intensive the more the minefield is big.
+    * @param {Number} x The X coordinate of the cell where to start
+    * @param {Number} y The Y coordinate of the cell where to start
+    * @param {Boolean} restore If true, the Minefield will be restored after the function ends (default: true)
+    * @returns {Boolean} A Boolean value that indicates whether the minefield is solvable from the given cell
+    * @throws {Error} If parameters are invalid
+    */
+   isSolvableFrom(x, y, restore=true)
+   {
+      x = validateNumber(x, 0, this.width-1), y = validateNumber(y, 0, this.height-1);
+      
+      let minefield = this.toMinefield();
+      let cell = minefield.getCellIndex(x, y)
+
+      return minefield.isSolvableFrom(cell, restore);
+   }
+
+   /**
+    * Checks the minefield to find hints about its state
+    * @param {Boolean} accurateHint If false, the function will return the nearby cells around the hint. If true, it will only return the exact cells to open/flag. (default: false)
+    * @param {Boolean} getOneHint If true, the function will only return a single hint (the first one found starting from the top) (default: true)
+    * @returns {Array.<any>} An array containing arrays with the coordinates of hint cells + a char value at index 0 of each (O/F) indicating if the hint is about opening or flagging cells
+    * @example minefield.getHint(true, false) //returns [['O', [2, 3], [2, 4]], ['F', [6, 5], [7, 5]]]
+    * minefield.getHint(true, true) //returns ['O', [2, 3], [2, 4]]
+    */
+   getHint(accurateHint=false, getOneHint=true)
+   {
+      let minefield = this.toMinefield();
+
+      let res = minefield.getHint(accurateHint, getOneHint);
+
+      if (res.length == 0) return [];
+      if (getOneHint) res = [res];
+      
+
+      let res2D = [];
+
+      for (let i=0; i<res.length; i++)
+      {
+         res2D.push([res[0][0]]);
+
+         for (let j=1; j<res[i].length; j++)
+         {
+            res2D[i].push(minefield.getCellCords(res[i]));
+         }
+      }
+
+      return res2D;
+   }
+
+
+   /**
+    * Calculates nearby mines number for each cell and assigns the value*/
+   resetMines()
+   {
+      for (let i=0; i<this.width; i++)
+      {
+         for (let j=0; j<this.height; j++)
+         {
+            this[i][j].mines = 0;
+         }
+      }
+
+      for (let i=0; i<this.width; i++)
+      {
+         for (let j=0; j<this.height; j++)
+         {
+            if (this[i][j].isMine)
+            {
+               let nearbyCells = this.getNearbyCells(i, j, true);
+   
+               for (let k=0; k<nearbyCells.length; k++)
+               {
+                  this[nearbyCells[k][0]][nearbyCells[k][1]].mines++;
+               }
+            }
+         }
+      }
+   }
+
+
+   /**
+    * @returns {Array.<object>} An Array containing only the cells of the Minefield object
+    */
+   getCellArray()
+   {
+      let cellArray = [];
+
+      for (let i=0; i<this.width; i++)
+      {
+         for (let j=0; j<this.height; j++)
+         {
+            cellArray.push(this[i][j]);
+         }
+      }
+
+      return cellArray;
+   }
+   /**
+    * @param {Number} x The X coordinate of the concerned cell
+    * @param {Number} y The Y coordinate of the concerned cell
+    * @param {Boolean} includeSelf If true, also include the coordinates of the concerned cell (default: false)
+    * @returns {Array.<Array.<number>>} An Array containing arrays with the coordinates of of the cells directly around the given one
+    * @throws {Error} If parameters are invalid
+    */
+   getNearbyCells(x, y, includeSelf=false)
+   {
+      x = validateNumber(x, 0, this.width-1), y = validateNumber(y, 0, this.height-1);
+      
+      let nearbyCells = [];
+
+      let isNotFirstRow = y > 0;
+      let isNotLastRow = y < this.height-1;
+
+
+      if (includeSelf ) nearbyCells.push([x, y])      //center
+
+      if (isNotFirstRow) nearbyCells.push([x, y-1]);  //up
+      if (isNotLastRow ) nearbyCells.push([x, y+1]);  //down
+
+      if (x > 0) //if cell isn't on first column
+      {
+         nearbyCells.push([x-1, y]);                //left
+
+         if (isNotFirstRow) nearbyCells.push([x-1, y-1]); //up left
+         if (isNotLastRow ) nearbyCells.push([x-1, y+1]); //down left
+      }
+
+      if (x < this.width-1) //if cell isn't on last column
+      {
+         nearbyCells.push([x+1, y]);                //right
+         
+         if (isNotFirstRow) nearbyCells.push([x+1, y-1]); //up right
+         if (isNotLastRow ) nearbyCells.push([x+1, y+1]); //down right
+      }
+
+      return nearbyCells;
+   }
+   /**
+    * Uses a flood fill algorithm to find all the cells that have 0 mines nearby
+    * @param {Number} x The X coordinate of the concerned cell
+    * @param {Number} y The Y coordinate of the concerned cell
+    * @param {Boolean} includeFlags If true, the flagged cells will be included in the empty zone (default: false)
+    * @returns {Array.<Array.<number>>} An Array containing arrays with the coordinates of the empty cells zone starting from the given one
+    * @throws {Error} If parameters are invalid
+    */
+   getEmptyZone(x, y, includeFlags=false)
+   {
+      let minefield = this.toMinefield();
+
+      let cell = minefield.getCellIndex(x, y)
+
+      let res = minefield.getEmptyZone(cell, includeFlags);
+
+
+      let res2D = [];
+
+      for (let i=0; i<res.length; i++)
+      {
+         res2D.push(minefield.getCellCords(res[i]));
+      }
+
+      return res2D;
+   }
+   
+
+   /**
+    * @returns {Boolean} a Boolean value that indicates whether the game is new (before the first move)
+    */
+   isNew()
+   {
+      for (let i=0; i < this.width; i++)
+      {
+         for (let j=0; j < this.height; j++)
+         {
+            if (this[i][j].isOpen) return false;
+         }
+      }
+
+      return true;
+   }
+   /**
+    * @returns {Boolean} a Boolean value that indicates whether the game is going on (after the first move, before game over)
+    */
+   isGoingOn()
+   {
+      let foundClosedEmpty = false;
+      let foundOpen = false;
+
+      for (let i=0; i < this.width; i++)
+      {
+         for (let j=0; j < this.height; j++)
+         {
+            if (this[i][j].isOpen && this[i][j].isMine) return false;
+
+            if (this[i][j].isOpen) foundOpen = true;
+            if (this[i][j].isOpen == false && this[i][j].isMine == false) foundClosedEmpty = true;
+         }
+      }
+
+      return foundOpen && foundClosedEmpty;
+   }
+   /**
+    * @returns {Boolean} a Boolean value that indicates whether the game is over (both cleared or lost)
+    */
+   isOver()
+   {
+      let foundClosedEmpty = false;
+
+      for (let i=0; i < this.width; i++)
+      {
+         for (let j=0; j < this.height; j++)
+         {
+            if (this[i][j].isOpen == false && this[i][j].isMine == false) foundClosedEmpty = true;
+            if (this[i][j].isOpen && this[i][j].isMine) return true;
+         }
+      }
+
+      return foundClosedEmpty == false;
+   }
+   /**
+    * @returns {Boolean} a Boolean value that indicates whether the minefield has been cleared (no mines opened)
+    */
+   isCleared()
+   {
+      for (let i=0; i < this.width; i++)
+      {
+         for (let j=0; j < this.height; j++)
+         {
+            if (this[i][j].isOpen == false && this[i][j].isMine == false) return false;
+            if (this[i][j].isOpen && this[i][j].isMine) return false;
+         }
+      }
+
+      return true;
+   }
+   /**
+    * @returns {Boolean} a Boolean value that indicates whether a mine has been opened in the current minefield
+    */
+   isLost()
+   {
+      for (let i=0; i < this.width; i++)
+      {
+         for (let j=0; j < this.height; j++)
+         {
+            if (this[i][j].isOpen && this[i][j].isMine) return true;
+         }
+      }
+
+      return false;
+   }
+
+
+   /**
+    * Console logs the minefield in a visual way. Legend:
+    * 
+    *  - ?: Unknown cells (neither opened or flagged)
+    *  - F: Flagged cells
+    *  - [N]: An open cell, with its nearby mines number
+    *  - X: An open mine
+    * 
+    * @param {Boolean} allsee If true, every cell will be showed as if they were open (default: false)
+    */
+   visualDebug(allsee=false)
+   {
+      this.toMinefield().visualDebug(allsee);
+   }
+
+
+   /**
+    * @returns {Number} A Number that indicates the used flags in the current minefield
+    */
+   get usedFlags()
+   {
+      let flags = 0;
+
+      for (let i=0; i < this.width; i++)
+      {
+         for (let j=0; j < this.height; j++)
+         {
+            if (this[i][j].isFlagged) flags++;
+         }
+      }
+
+      return flags;
+   }
+}
 
 function validateNumber(num, min=-Infinity, max=Infinity)
 {
