@@ -3,28 +3,24 @@ A Minesweeper class engine that can be used to easily create minefields and play
 [Here's what you can do using it](https://github.com/zWolfrost/JSMinesweeper).
 
 Supports:
-- Lots of useful logic functions such as "**openCell**" and "**getHint**" ([see below their use](#minefield-object-methods));
-- **Minefield Auto-Solving Algorithm** (useful when wanting to make no-guess minefields);
-- **Current minefield state functions** (it's going on, it's over etc.);
+- Lots of useful logic methods such as "**openCell**" and "**getHint**" ([see below their use](#minefield-object-methods));
+- Minefield **Auto-Solving Algorithm** (useful when wanting to make no-guess minefields);
+- **Current minefield state** methods (it's going on, it's over etc.);
 - Possibility to **switch** from a 1D-Array Minefield to a 2D-Array one depending on your taste;
-- **Used flags count**;
-- **Visual Debugging**;
+- **Used flags** count;
+- **Visual Debugging**.
 
 ## Dependencies
 minesweeper.js is written in vanilla javascript (ES10) and has no dependencies.
 
 ## How to install
-You can just install it like any npm package
-
-```
-npm i @zwolfrost/minesweeper.js
-```
-
-or just copy the file from the [src directory](src/minesweeper.js)
+You can just install it like any npm package,<br>
+`npm i @zwolfrost/minesweeper.js`<br>
+use a [cdn](#how-to-use) or copy the file from the [src directory](src/).
 
 &nbsp;
 ## BREAKING CHANGES!
-**Watch out for this section if you wish to migrate to a different version**
+**Watch out for this section if you wish to migrate to a different version.**
 
 - **v2.0.0+**: The "rows" and "cols" parameters and properties were replaced with "width" and "height" for understanding purposes. <br> `(rows, cols, ...)` --> `(width, height, ...)`
 
@@ -32,8 +28,13 @@ or just copy the file from the [src directory](src/minesweeper.js)
 
 &nbsp;
 # How to use
+*Note that you can change the cdn version and/or package type of the library with whatever version you want. Template:*<br>
+`https://cdn.jsdelivr.net/npm/package@version/file`.
 ```
 import Minefield from "path/to/minesweeper.js"
+//OR
+import Minefield from "https://cdn.jsdelivr.net/npm/@zwolfrost/minesweeper.js@2.1.2/src/minesweeper.js";
+
 let minefield = new Minefield(2, 5, 3);
 ```
 
@@ -60,6 +61,7 @@ Creates a Minefield2D Object that is very similar to a Minefield one with the on
 
 &nbsp;
 ## Minefield Object Methods
+*Note that the methods are fully documented in the JSDOC methods comments*
 
 | Method            | Description                                                                                                                                                                                                  | Parameters
 |:-----------------:|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-
@@ -85,7 +87,6 @@ Creates a Minefield2D Object that is very similar to a Minefield one with the on
 
 &nbsp;
 ## Minefield2D Object Methods
-
 The Minefield2D Methods are **completely the same** as the Minefield ones with the only difference being that every index, that being parameter or result, is changed with X and Y coordinates.
 
 Also the "**toMinefield2D**" Method is replaced with "toMinefield" which is conceptually the same.
