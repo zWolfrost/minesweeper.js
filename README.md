@@ -2,17 +2,24 @@
 A Minesweeper class engine that can be used to easily create minefields and play without having to code any logic (UI-indipendent).
 [Here's what you can do using it](https://github.com/zWolfrost/JSMinesweeper).
 
+All versions are written in vanilla javascript (ES12) and have no dependencies.
+
 Supports:
 - Lots of useful logic methods such as "**openCell**" and "**getHint**" ([see below their use](#minefield-object-methods));
 - Minefield **Auto-Solving Algorithm** (useful when wanting to make no-guess minefields);
 - **Current minefield state** methods (it's going on, it's over etc.);
 - Possibility to **switch** from a 1D-Array Minefield to a 2D-Array one depending on your taste;
-- **Used flags** count;
 - **Visual Debugging**.
 
-## Dependencies
-minesweeper.js is written in vanilla javascript (ES10) and has no dependencies.
+&nbsp;
+## Versions
+| Version            | Methods Available                                  | JSDOC Documentation | Minification
+|:-                  |:-:                                                 |:-:                  |:-:
+| minefield.js       | All methods                                        | :heavy_check_mark:  | :x:
+| minefield.min.js   | All methods                                        | :x:                 | :heavy_check_mark:
+| minefield.slim.js  | Only toMinefield2D and simplify (for both classes) | :x:                 | :heavy_check_mark:
 
+&nbsp;
 ## How to install
 You can just install it like any npm package,<br>
 `npm i @zwolfrost/minesweeper.js`<br>
@@ -22,16 +29,16 @@ use a [cdn](#how-to-use) or copy the file from the [src directory](src/).
 ## BREAKING CHANGES!
 **Watch out for this section if you wish to migrate to a different version.**
 
-- **v2.0.0+**: The "rows" and "cols" parameters and properties were replaced with "width" and "height" for understanding purposes. <br> `(rows, cols, ...)` --> `(width, height, ...)`
+- **v2.0.0+**: The "rows" and "cols" parameters and properties were replaced with "width" and "height" for understanding purposes. <br> `(rows, cols, ...)` ➜ `(width, height, ...)`
 
-- **v2.1.0+**: The "x" and "y" parameters were changed to stay both in an array when passing them to methods. <br> `(x, y, ...)` --> `([x, y], ...)`
+- **v2.1.0+**: The "x" and "y" parameters were changed to stay both in an array when passing them to methods. <br> `(x, y, ...)` ➜ `([x, y], ...)`
 
 &nbsp;
 # How to use
 *Note that you can change the cdn version and/or package type of the library with whatever version you want. Template:*<br>
 `https://cdn.jsdelivr.net/npm/package@version/file`.
 ```
-import Minefield from "path/to/minesweeper.js"
+import Minefield from "path/to/minesweeper.js";
 //OR
 import Minefield from "https://cdn.jsdelivr.net/npm/@zwolfrost/minesweeper.js@2.1.2/src/minesweeper.js";
 
@@ -64,9 +71,10 @@ Creates a Minefield2D Object that is very similar to a Minefield one with the on
 *Note that the methods are fully documented in the JSDOC methods comments*
 
 | Method            | Description                                                                                                                                                                                                  | Parameters
-|:-----------------:|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|:-
+|:-:                |:-                                                                                                                                                                                                            |:-
 | **new Minefield** | Creates a "Minefield" Object.                                                                                                                                                                                | <ul><li>The **width** of the minefield (n. of columns).</li><li>The **height** of the minefield (n. of rows).</li><li>The **mines** number/placements.</li><li>An optional **randomizer** that is useful in case you want to make a seed system (default: Math.random).</li></ul>
 | toMinefield2D     | Returns a "[Minefield2D](#minefield2d-object-methods)" Object, based on your "Minefield" Object. Note that the two share the same addresses to the same cells, so a change on one will reflect on the other. |
+| simplify          | Returns a Number-Only 2D-Array version of the minefield.                                                                                                                                                     |
 | openCell          | Opens a given cell and may open nearby ones following the minesweeper game rules. Returns the index of cells updated by this operation.                                                                      | <ul><li>The **index** of the cell to open.</li><li>A boolean value "**firstclick**" that indicates whether the method is executed on a new game or not (default: isNew()). If it's true, and a bomb is opened, it will be moved in another cell starting from 0.</li><li>A boolean value "**nearbyOpening**" that enables the opening of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby flagged cells (default: true).</li><li>A boolean value "**nearbyFlagging**" that enables the flagging of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby closed cells (default: true).</li></ul>
 | isSolvableFrom    | Returns a Boolean value that indicates whether the game is solvable from a given cell (by not guessing).                                                                                                     | <ul><li>The **index** of the cell where to start.</li><li>A boolean value "**restore**". If true, the minefield will be fully re-closed after the method's execution (default: true).</li></ul>
 | getHint           | Returns an Array of indexes of hint cells about a minefield's state.                                                                                                                                         | <ul><li>A boolean value "**accurateHint**" that indicates whether the hint will be the exact cells or more "in the area" (default: false).</li><li>Another optional boolean value "**getOneHint**" that indicates whether to return only an hint (1D array) or more (2D array) (default: true).</li></ul>

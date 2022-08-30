@@ -147,6 +147,34 @@ export default class Minefield
 
 
    /**
+    * Returns a simplified version of the minefield.
+    *
+    *  - -1: A mine
+    *  - [0-8]: A cell with the number of nearby mines
+    *
+    * @returns {Array.<Array.<number>>} A Number-Only 2D-Array containing the numbers with meanings explained above
+    */
+   simplify()
+   {
+      let simplified = [];
+
+      for (let i=0; i<this.width; i++)
+      {
+         simplified.push([]);
+
+         for (let j=0; j<this.height; j++)
+         {
+            let cell = this[i+j*this.width];
+
+            simplified[i].push(cell.isMine ? -1 : cell.mines);
+         }
+      }
+
+      return simplified;
+   }
+
+
+   /**
     * Opens a given cell and may open nearby ones following the minesweeper game rules.
     * @example
     * minefield.openCell(20, false, {nearbyOpening: true, nearbyFlagging: false});
@@ -1133,6 +1161,34 @@ class Minefield2D extends Minefield
 
 
    /**
+    * Returns a simplified version of the minefield.
+    *
+    *  - -1: A mine
+    *  - [0-8]: A cell with the number of nearby mines
+    *
+    * @returns {Array.<Array.<number>>} A Number-Only 2D-Array containing the numbers with meanings explained above
+    */
+   simplify()
+   {
+      let simplified = [];
+
+      for (let i=0; i<this.width; i++)
+      {
+         simplified.push([]);
+
+         for (let j=0; j<this.height; j++)
+         {
+            let cell = this[i][j];
+
+            simplified[i].push(cell.isMine ? -1 : cell.mines);
+         }
+      }
+
+      return simplified;
+   }
+
+
+   /**
     * Opens a given cell and may open nearby ones following the minesweeper game rules.
     * @example
     * minefield.openCell([5, 8], false, {nearbyOpening: true, nearbyFlagging: false});
@@ -1361,6 +1417,7 @@ class Minefield2D extends Minefield
       return squareZone;
    }
 }
+
 
 function validateNumber(num, min=-Infinity, max=Infinity)
 {
