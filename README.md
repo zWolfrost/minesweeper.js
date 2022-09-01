@@ -1,15 +1,14 @@
 # minesweeper.js
-A Minesweeper class engine that can be used to easily create minefields and play without having to code any logic (UI-indipendent).
+An efficient Minesweeper class-based engine that can be used to easily create minefields and play without having to code any logic (UI-indipendent).
 [Here's what you can do using it](https://github.com/zWolfrost/JSMinesweeper).
 
 All versions are written in vanilla javascript (ES12) and have no dependencies.
 
-Supports:
+Some of the most notable capabilities:
 - Lots of useful logic methods such as "**openCell**" and "**getHint**" ([see below their use](#minefield-object-methods));
 - Minefield **Auto-Solving Algorithm** (useful when wanting to make no-guess minefields);
 - **Current minefield state** methods (it's going on, it's over etc.);
 - Possibility to **switch** from a 1D-Array Minefield to a 2D-Array one depending on your taste;
-- **Visual Debugging**.
 
 &nbsp;
 ## Versions
@@ -26,12 +25,17 @@ You can just install it like any npm package,<br>
 use a [cdn](#how-to-use) or copy the file from the [src directory](src/).
 
 &nbsp;
-## BREAKING CHANGES!
-**Watch out for this section if you wish to migrate to a different version.**
+## Changelog and Breaking Changes (as of v2.0.0)
+**Watch out for this section if you wish to migrate to a different version.** <br>
+*New patches are usually bugfixes and/or documentation clarification*
 
-- **v2.0.0+**: The "rows" and "cols" parameters and properties were replaced with "width" and "height" for understanding purposes. <br> `(rows, cols, ...)` ➜ `(width, height, ...)`
+- **v2.0.0**: Added Minefield2D Object. The "rows" and "cols" parameters and properties were replaced with "width" and "height" for understanding purposes. <br> `(rows, cols, ...)` ➜ `(width, height, ...)`
 
-- **v2.1.0+**: The "x" and "y" parameters were changed to stay both in an array when passing them to methods. <br> `(x, y, ...)` ➜ `([x, y], ...)`
+- **v2.1.0**: Added "getSquareZone" method. The "x" and "y" parameters were changed to stay both in an array when passing them to methods. <br> `(x, y, ...)` ➜ `([x, y], ...)`
+
+- **v2.2.0**: Re-added "simplify" method and a slim version of the package.
+
+- **v2.3.0**: Changed behaviour of the "forEachCell" and "simplify" methods. See JSDOC documentation for details.
 
 &nbsp;
 # How to use
@@ -74,12 +78,12 @@ Creates a Minefield2D Object that is very similar to a Minefield one with the on
 |:-:                |:-                                                                                                                                                                                                            |:-
 | **new Minefield** | Creates a "Minefield" Object.                                                                                                                                                                                | <ul><li>The **width** of the minefield (n. of columns).</li><li>The **height** of the minefield (n. of rows).</li><li>The **mines** number/placements.</li><li>An optional **randomizer** that is useful in case you want to make a seed system (default: Math.random).</li></ul>
 | toMinefield2D     | Returns a "[Minefield2D](#minefield2d-object-methods)" Object, based on your "Minefield" Object. Note that the two share the same addresses to the same cells, so a change on one will reflect on the other. |
-| simplify          | Returns a Number-Only 2D-Array version of the minefield.                                                                                                                                                     |
+| simplify          | Returns a Number-Only array version of the minefield.                                                                                                                                                        |
 | openCell          | Opens a given cell and may open nearby ones following the minesweeper game rules. Returns the index of cells updated by this operation.                                                                      | <ul><li>The **index** of the cell to open.</li><li>A boolean value "**firstclick**" that indicates whether the method is executed on a new game or not (default: isNew()). If it's true, and a bomb is opened, it will be moved in another cell starting from 0.</li><li>A boolean value "**nearbyOpening**" that enables the opening of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby flagged cells (default: true).</li><li>A boolean value "**nearbyFlagging**" that enables the flagging of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby closed cells (default: true).</li></ul>
 | isSolvableFrom    | Returns a Boolean value that indicates whether the game is solvable from a given cell (by not guessing).                                                                                                     | <ul><li>The **index** of the cell where to start.</li><li>A boolean value "**restore**". If true, the minefield will be fully re-closed after the method's execution (default: true).</li></ul>
 | getHint           | Returns an Array of indexes of hint cells about a minefield's state.                                                                                                                                         | <ul><li>A boolean value "**accurateHint**" that indicates whether the hint will be the exact cells or more "in the area" (default: false).</li><li>Another optional boolean value "**getOneHint**" that indicates whether to return only an hint (1D array) or more (2D array) (default: true).</li></ul>
 | resetMines        | Resets the nearby-mines number for each cell in the current minefield.                                                                                                                                       |
-| forEachCell       | Executes a given function for every cell (passing them as parameters along with the corresponding index, like a forEach).                                                                                    | <ul><li>A **function** to execute for each cell</li><ul>
+| forEachCell       | Executes a given function for every cell (passing them as parameters along with the corresponding index, like a forEach).                                                                                    | <ul><li>A **function** to execute for each cell</li><li>A boolean value "**returnValue**". If true, the loop breaks whenever the given function returns a value that is not undefined and returns that value (default: false).</li><li>A boolean value "**giveIndex**". If false, the method will replace the index of the cell with its corresponding coordinates (default: true).</li><ul>
 | getNearbyCells    | Returns an Array containing the indexes of the cells directly around the given one.                                                                                                                          | <ul><li>The **index** of the desired cell.</li><li>A boolean value "**includeSelf**". If true, the index of the given cell will also be included (default: false).</li></ul>
 | getEmptyZone      | Returns an Array containing the indexes of the empty cells zone starting from the given one.                                                                                                                 | <ul><li>The **index** of the cell where to start.</li><li>A boolean value "**includeFlags**". If true, the flagged cells will be included in the result (default: false).</li></ul>
 | getSquareZone     | Returns an Array containing the indexes of all the square zone cells starting and ending at the specified indexes.                                                                                           | <ul><li>The starting index "**begIndex**" of the square zone.</li><li>The ending index "**endIndex**" of the square zone.</li></ul>
@@ -95,6 +99,15 @@ Creates a Minefield2D Object that is very similar to a Minefield one with the on
 
 &nbsp;
 ## Minefield2D Object Methods
-The Minefield2D Methods are **completely the same** as the Minefield ones with the only difference being that every index, that being parameter or result, is changed with X and Y coordinates.
+The Minefield2D Methods are **functionally the same** as the Minefield ones.
 
-Also the "**toMinefield2D**" Method is replaced with "toMinefield" which is conceptually the same.
+Only differences:
+- Every index, that being parameter or result, is changed with X and Y coordinates in an array;
+- The "**toMinefield2D**" method is replaced with "toMinefield";
+- The "**simplify**" method returns a 2D Array instead of a 1D one.
+
+&nbsp;
+
+&nbsp;
+# Found a bug and/or need help?
+Please [open an issue](https://github.com/zWolfrost/minesweeper.js/issues) on Github to request a change, report a bug or ask for help about something and i will look into it.

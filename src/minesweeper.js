@@ -1,7 +1,7 @@
 /**
  * An Object containing:
- * @property {Number}  width         - The minefield width
- * @property {Number}  height        - The minefield height
+ * @property {Number}  width         - The minefield width (1-based)
+ * @property {Number}  height        - The minefield height (1-based)
  * @property {Number}  cells         - The minefield total cells number
  * @property {Number}  mines         - The minefield total mines number
  * @property {Object}  [X]           - Each minefield cell on its index ([0]..[99]+)
@@ -14,12 +14,12 @@ export default class Minefield
 {
    /**
     * Creates a new minefield with the given width, height and mines number (and randomizes them)
-    * @param {Number} width The width of the minefield
-    * @param {Number} height The height of the minefield
-    * @param {Number} mines The number of total mines (default: width*height/5). If array given, the values of the array will be the indexes where the mines will be placed
+    * @param {Number} width The width of the minefield (1-based)
+    * @param {Number} height The height of the minefield (1-based)
+    * @param {Number} mines The number of total mines (default: width*height/5). If an array is given, its values will represent the indexes where the mines will be placed
     * @param {Function} randomizer A function that returns a random decimal number between 0 and 1 (default: {@link Math.random})
     * @returns {Minefield} A new Minefield object
-    * @throws {Error} If parameters are invalid
+    * @throws An error if parameters are invalid
     */
    constructor(width, height, mines = Math.floor(width*height/5), randomizer = Math.random)
    {
@@ -152,22 +152,15 @@ export default class Minefield
     *  - -1: A mine
     *  - [0-8]: A cell with the number of nearby mines
     *
-    * @returns {Array.<Array.<number>>} A Number-Only 2D-Array containing the numbers with meanings explained above
+    * @returns {Array.<number>>} A Number-Only array containing the numbers with meanings explained above
     */
    simplify()
    {
       let simplified = [];
 
-      for (let i=0; i<this.width; i++)
+      for (let i=0; i<this.cells; i++)
       {
-         simplified.push([]);
-
-         for (let j=0; j<this.height; j++)
-         {
-            let cell = this[i+j*this.width];
-
-            simplified[i].push(cell.isMine ? -1 : cell.mines);
-         }
+         simplified.push(this[i].isMine ? -1 : this[i].mines);
       }
 
       return simplified;
@@ -183,7 +176,7 @@ export default class Minefield
     * @param {Boolean} nearbyOpening Enables the opening of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby flagged cells (default: true)
     * @param {Boolean} nearbyFlagging Enables the flagging of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby closed cells (default: true)
     * @returns {Array.<number>} An array containing the indexes of the updated cells
-    * @throws {Error} If parameters are invalid
+    * @throws An error if parameters are invalid
     */
    openCell(cell, firstclick=this.isNew(), {nearbyOpening=true, nearbyFlagging=true} = {})
    {
@@ -281,7 +274,7 @@ export default class Minefield
     * @param {Number} cell The index of the cell where to start
     * @param {Boolean} restore If true, the Minefield will be restored after the function ends (default: true)
     * @returns {Boolean} A Boolean value that indicates whether the minefield is solvable from the given cell
-    * @throws {Error} If parameters are invalid
+    * @throws An error if parameters are invalid
     */
    isSolvableFrom(cell, restore=true)
    {
@@ -836,24 +829,55 @@ export default class Minefield
    /**
     * Executes a given function for every cell (passing them as parameters along with the corresponding index, like a forEach)
     * @param {Function} fun A function to execute for each cell
-    * @returns {any} The loop stops whenever the function returns a value that is not undefined and returns that value
+    * @param {Boolean} returnBreak If true, the loop breaks whenever the given function returns a value that is not undefined and returns that value (default: false)
+    * @param {Boolean} giveIndex If false, the method will replace the index of the cell with its corresponding coordinates (default: true)
+    * @returns {any} Any value returned from the function if returnBreak is true
     */
-   forEachCell(fun)
+   forEachCell(fun, returnValue=false, giveIndex=true)
    {
-      for (let i=0; i<this.cells; i++)
+      if (returnValue)
       {
-         let res = fun(this[i], i);
-         if (res !== undefined) return res;
+         if (giveIndex)
+         {
+            for (let i=0; i<this.cells; i++)
+            {
+               let res = fun(this[i], i);
+               if (res !== undefined) return res;
+            }
+         }
+         else
+         {
+            for (let i=0; i<this.cells; i++)
+            {
+               let res = fun(this[i], [i % this.width, Math.floor(i/this.width)]);
+               if (res !== undefined) return res;
+            }
+         }
       }
-
-      return undefined;
+      else
+      {
+         if (giveIndex)
+         {
+            for (let i=0; i<this.cells; i++)
+            {
+               fun(this[i], i);
+            }
+         }
+         else
+         {
+            for (let i=0; i<this.cells; i++)
+            {
+               fun(this[i], [i % this.width, Math.floor(i/this.width)]);
+            }
+         }
+      }
    }
    /**
     * Finds the coordinates of the nearby cell at the given index
     * @param {Number} cell The index of the concerned cell
     * @param {Boolean} includeSelf If true, also include the index of the concerned cell (default: false)
     * @returns {Array.<number>} An Array containing the indexes of the cells directly around the given one
-    * @throws {Error} If parameters are invalid
+    * @throws An error if parameters are invalid
     */
    getNearbyCells(cell, includeSelf=false)
    {
@@ -896,7 +920,7 @@ export default class Minefield
     * @param {Number} cell The index of the concerned cell
     * @param {Boolean} includeFlags Whether to include flagged cells in the empty zone (default: false)
     * @returns {Array.<number>} An Array containing the indexes of the empty cells zone starting from the given one
-    * @throws {Error} If parameters are invalid
+    * @throws An error if parameters are invalid
     */
    getEmptyZone(cell, includeFlags=false)
    {
@@ -945,7 +969,7 @@ export default class Minefield
     * @param {Number} begIndex The index of the start of the square zone
     * @param {Number} endIndex The index of the end of the square zone
     * @return {Array<number>} An array containing the indexes of all the cells present in the square zone
-    * @throws {Error} If parameters are invalid
+    * @throws An error if parameters are invalid
     */
    getSquareZone(begIndex, endIndex)
    {
@@ -971,7 +995,7 @@ export default class Minefield
    /**
     * @param {Number} cell The index of the desired cell
     * @returns {Array<Number>} An array that has the x and y cords of the desired cell at index 0 and 1 respectively
-    * @throws {Error} If parameters are invalid
+    * @throws An error if parameters are invalid
     */
    getCellCords(cell)
    {
@@ -983,7 +1007,7 @@ export default class Minefield
     * @param {Number} x The X coordinate of the desired cell
     * @param {Number} y The Y coordinate of the desired cell
     * @returns {Number} A Number that indicates the index of the cell that is in the specified row and column
-    * @throws {Error} If parameters are invalid
+    * @throws An error if parameters are invalid
     */
    getCellIndex([x, y])
    {
@@ -998,7 +1022,7 @@ export default class Minefield
     */
    isNew()
    {
-      return this.forEachCell(cell => {if (cell.isOpen) return false;}) ?? true;
+      return this.forEachCell(cell => {if (cell.isOpen) return false;}, true) ?? true;
    }
    /**
     * @returns {Boolean} a Boolean value that indicates whether the game is going on (after the first move, before game over)
@@ -1014,7 +1038,7 @@ export default class Minefield
 
          if (cell.isOpen) foundOpen = true;
          else if (cell.isOpen == false && cell.isMine == false) foundClosedEmpty = true;
-      }) ?? (foundOpen && foundClosedEmpty);
+      }, true) ?? (foundOpen && foundClosedEmpty);
    }
    /**
     * @returns {Boolean} a Boolean value that indicates whether the game is over (both cleared or lost)
@@ -1027,7 +1051,7 @@ export default class Minefield
       {
          if (cell.isOpen == false && cell.isMine == false) foundClosedEmpty = true;
          else if (cell.isOpen && cell.isMine) return true;
-      }) ?? foundClosedEmpty == false;
+      }, true) ?? foundClosedEmpty == false;
    }
    /**
     * @returns {Boolean} a Boolean value that indicates whether the minefield has been cleared (no mines opened)
@@ -1038,14 +1062,14 @@ export default class Minefield
       {
          if (cell.isOpen == false && cell.isMine == false) return false;
          if (cell.isOpen && cell.isMine) return false;
-      }) ?? true;
+      }, true) ?? true;
    }
    /**
     * @returns {Boolean} a Boolean value that indicates whether a mine has been opened in the current minefield
     */
    isLost()
    {
-      return this.forEachCell(cell => {if (cell.isOpen && cell.isMine) return true;}) ?? false;
+      return this.forEachCell(cell => {if (cell.isOpen && cell.isMine) return true;}, true) ?? false;
    }
 
 
@@ -1077,7 +1101,7 @@ export default class Minefield
 
          if ((i+1) % this.width == 0) text += char + "\n";
          else text += char + " ";
-      });
+      }, false, true);
 
       console.log(text);
    }
@@ -1102,10 +1126,10 @@ export default class Minefield
 
 /**
  * An Object containing:
- * @property {Number}  width         - The minefield width
- * @property {Number}  height        - The minefield height
- * @property {Number}  cells         - The minefield total cells number
- * @property {Number}  mines         - The minefield total mines number
+ * @property {Number}  width            - The minefield width (1-based)
+ * @property {Number}  height           - The minefield height (1-based)
+ * @property {Number}  cells            - The minefield total cells number
+ * @property {Number}  mines            - The minefield total mines number
  * @property {Object}  [X][Y]           - Each minefield cell on its coordinates
  * @property {Boolean} [X][Y].isOpen    - Whether a cell is revealed
  * @property {Boolean} [X][Y].isMine    - Whether a cell is a mine
@@ -1191,14 +1215,14 @@ class Minefield2D extends Minefield
    /**
     * Opens a given cell and may open nearby ones following the minesweeper game rules.
     * @example
-    * minefield.openCell([5, 8], false, {nearbyOpening: true, nearbyFlagging: false});
+    * minefield2D.openCell([5, 8], false, {nearbyOpening: true, nearbyFlagging: false});
     * @param {Number} x The X coordinate of the cell to open
     * @param {Number} y The Y coordinate of the cell to open
     * @param {Boolean} firstclick If true, and a bomb is opened, it will be moved in another cell starting from 0 (default: {@link isNew()})
     * @param {Boolean} nearbyOpening Enables the opening of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby flagged cells (default: true)
     * @param {Boolean} nearbyFlagging Enables the flagging of nearby cells if the given cell is already open and its nearby mines number matches the number of nearby closed cells (default: true)
     * @returns {Array.<Array.<number>>} An array containing arrays with the coordinates of the updated cells
-    * @throws {Error} If parameters are invalid
+    * @throws An error if parameters are invalid
     */
    openCell([x, y], firstclick=this.isNew(), {nearbyOpening=true, nearbyFlagging=true} = {})
    {
@@ -1227,7 +1251,7 @@ class Minefield2D extends Minefield
     * @param {Number} y The Y coordinate of the cell where to start
     * @param {Boolean} restore If true, the Minefield will be restored after the function ends (default: true)
     * @returns {Boolean} A Boolean value that indicates whether the minefield is solvable from the given cell
-    * @throws {Error} If parameters are invalid
+    * @throws An error if parameters are invalid
     */
    isSolvableFrom([x, y], restore=true)
    {
@@ -1303,22 +1327,62 @@ class Minefield2D extends Minefield
 
 
    /**
-    * Executes a given function for every cell (passing them as parameters along with the corresponding index, like a forEach)
+    * Executes a given function for every cell (passing them as parameters along with the corresponding coordinates, like a forEach)
     * @param {Function} fun A function to execute for each cell
-    * @returns {any} The loop stops whenever the function returns a value that is not undefined and returns that value
+    * @param {Boolean} returnBreak If true, the loop breaks whenever the given function returns a value that is not undefined and returns that value (default: false)
+    * @param {Boolean} giveIndex If true, the method will replace the coordinates of the cell with its corresponding index (default: false)
+    * @returns {any} Any value returned from the function if returnBreak is true
     */
-   forEachCell(fun)
+   forEachCell(fun, returnBreak=false, giveIndex=false)
    {
-      for (let i=0; i<this.height; i++)
+      if (returnBreak)
       {
-         for (let j=0; j<this.width; j++)
+         if (giveIndex)
          {
-            let res = fun(this[j][i], j+i*this.width);
-            if (res !== undefined) return res;
+            for (let i=0; i<this.height; i++)
+            {
+               for (let j=0; j<this.width; j++)
+               {
+                  let res = fun(this[j][i], j+i*this.width);
+                  if (res !== undefined) return res;
+               }
+            }
+         }
+         else
+         {
+            for (let i=0; i<this.height; i++)
+            {
+               for (let j=0; j<this.width; j++)
+               {
+                  let res = fun(this[j][i], [j, i]);
+                  if (res !== undefined) return res;
+               }
+            }
          }
       }
-
-      return undefined;
+      else
+      {
+         if (giveIndex)
+         {
+            for (let i=0; i<this.height; i++)
+            {
+               for (let j=0; j<this.width; j++)
+               {
+                  fun(this[j][i], j+i*this.width);
+               }
+            }
+         }
+         else
+         {
+            for (let i=0; i<this.height; i++)
+            {
+               for (let j=0; j<this.width; j++)
+               {
+                  fun(this[j][i], [j, i]);
+               }
+            }
+         }
+      }
    }
    /**
     * Finds the coordinates of the nearby cell at the given index
@@ -1326,7 +1390,7 @@ class Minefield2D extends Minefield
     * @param {Number} y The Y coordinate of the concerned cell
     * @param {Boolean} includeSelf If true, also include the coordinates of the concerned cell (default: false)
     * @returns {Array.<Array.<number>>} An Array containing arrays with the coordinates of of the cells directly around the given one
-    * @throws {Error} If parameters are invalid
+    * @throws An error if parameters are invalid
     */
    getNearbyCells([x, y], includeSelf=false)
    {
@@ -1367,7 +1431,7 @@ class Minefield2D extends Minefield
     * @param {Number} y The Y coordinate of the concerned cell
     * @param {Boolean} includeFlags If true, the flagged cells will be included in the empty zone (default: false)
     * @returns {Array.<Array.<number>>} An Array containing arrays with the coordinates of the empty cells zone starting from the given one
-    * @throws {Error} If parameters are invalid
+    * @throws An error if parameters are invalid
     */
    getEmptyZone([x, y], includeFlags=false)
    {
@@ -1394,7 +1458,7 @@ class Minefield2D extends Minefield
     * @param {Number} endX The X coordinate of the end of the square zone
     * @param {Number} endY The Y coordinate of the end of the square zone
     * @return {Array.<Array.<number>>} An array containing the coordinates of all the cells present in the square zone
-    * @throws {Error} If parameters are invalid
+    * @throws An error if parameters are invalid
     */
    getSquareZone([begX, begY], [endX, endY])
    {
@@ -1426,7 +1490,10 @@ function validateNumber(num, min=-Infinity, max=Infinity)
       num = Math.trunc(min >= 0 ? Math.abs(+num) : +num);
       if (isNaN(num)) throw new Error();
    }
-   catch {throw new Error("Invalid parameter type");}
+   catch
+   {
+      throw new Error("Invalid parameter type");
+   }
 
    if (num < min) throw new Error("Parameter value is too small");
    if (num > max) throw new Error("Parameter value is too big");
