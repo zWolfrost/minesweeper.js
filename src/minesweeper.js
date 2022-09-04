@@ -975,17 +975,20 @@ export default class Minefield
    {
       begIndex = validateNumber(begIndex, 0, this.cells-1), endIndex = validateNumber(endIndex, 0, this.cells-1);
 
-      if (endIndex < begIndex) [begIndex, endIndex] = [endIndex, begIndex];
+      let begCords = this.getCellCords(begIndex);
+      let endCords = this.getCellCords(endIndex);
 
-      let begX = this.getCellCords(begIndex)[0];
-      let endX = this.getCellCords(endIndex)[0];
+      if (endCords[0] < begCords[0]) [begCords[0], endCords[0]] = [endCords[0], begCords[0]];
+      if (endCords[1] < begCords[1]) [begCords[1], endCords[1]] = [endCords[1], begCords[1]];
 
       let squareZone = [];
 
-      for (let i=begIndex; i<=endIndex; i++)
+      for (let i=begCords[0]; i<=endCords[0]; i++)
       {
-         let tmpX = this.getCellCords(i)[0];
-         if (begX <= tmpX && tmpX <= endX) squareZone.push(i);
+         for (let j=begCords[1]; j<=endCords[1]; j++)
+         {
+            squareZone.push(i + j*this.width);
+         }
       }
 
       return squareZone;
@@ -1121,7 +1124,7 @@ export default class Minefield
 
       return flags;
    }
-};
+}
 
 
 /**
@@ -1499,4 +1502,4 @@ function validateNumber(num, min=-Infinity, max=Infinity)
    if (num > max) throw new Error("Parameter value is too big");
 
    return num;
-};
+}
