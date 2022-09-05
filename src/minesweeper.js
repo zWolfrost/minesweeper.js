@@ -97,14 +97,14 @@ export default class Minefield
             this[i] = {mines: 0, isMine: i < mines, isOpen: false, isFlagged: false};
          }
 
-         //Knuth-Fisher-Yates shuffle algorithm
+         //Durstenfeld shuffle algorithm
          for (let i=cells-1; i > 0; i--)
          {
             let j = Math.floor(randomizer() * (i+1));
             [this[i], this[j]] = [this[j], this[i]];
          }
 
-         //high up the cells' nearby mines number by one
+         //high up the cells' nearby-mines number by one
          for (let i=0; i<cells; i++)
          {
             if (this[i].isMine)
@@ -128,9 +128,12 @@ export default class Minefield
     *
     * WARNING! The two objects will share the same reference to the same cells so any changes made to one will be reflected in the other
     * @returns {Minefield2D} A Minefield2D object
+    * @throws An error if object is already an instance of Minefield2D
     */
    toMinefield2D()
    {
+      if (this instanceof Minefield2D) throw new Error("This object is already an instance of Minefield2D");
+
       let minefield2D = new Minefield2D(this.width, this.height)
 
       for (let i=0; i<this.width; i++)
@@ -833,43 +836,12 @@ export default class Minefield
     * @param {Boolean} giveIndex If false, the method will replace the index of the cell with its corresponding coordinates (default: true)
     * @returns {any} Any value returned from the function if returnBreak is true
     */
-   forEachCell(fun, returnValue=false, giveIndex=true)
+   forEachCell(fun, returnBreak=false, giveIndex=true)
    {
-      if (returnValue)
+      for (let i=0; i<this.cells; i++)
       {
-         if (giveIndex)
-         {
-            for (let i=0; i<this.cells; i++)
-            {
-               let res = fun(this[i], i);
-               if (res !== undefined) return res;
-            }
-         }
-         else
-         {
-            for (let i=0; i<this.cells; i++)
-            {
-               let res = fun(this[i], [i % this.width, Math.floor(i/this.width)]);
-               if (res !== undefined) return res;
-            }
-         }
-      }
-      else
-      {
-         if (giveIndex)
-         {
-            for (let i=0; i<this.cells; i++)
-            {
-               fun(this[i], i);
-            }
-         }
-         else
-         {
-            for (let i=0; i<this.cells; i++)
-            {
-               fun(this[i], [i % this.width, Math.floor(i/this.width)]);
-            }
-         }
+         let res = fun(this[i], giveIndex ? i : [i % this.width, Math.floor(i/this.width)]);
+         if (returnBreak && res !== undefined) return res;
       }
    }
    /**
@@ -892,14 +864,14 @@ export default class Minefield
       let isNotLastRow = y < this.height-1;
 
 
-      if (includeSelf ) nearbyCells.push(cell)                 //center
+      if (includeSelf ) nearbyCells.push(cell)                   //center
 
       if (isNotFirstRow) nearbyCells.push(cell-this.width);      //up
       if (isNotLastRow ) nearbyCells.push(cell+this.width);      //down
 
       if (x > 0) //if cell isn't on first column
       {
-         nearbyCells.push(cell-1);                              //left
+         nearbyCells.push(cell-1);                               //left
 
          if (isNotFirstRow) nearbyCells.push(cell-this.width-1); //up left
          if (isNotLastRow ) nearbyCells.push(cell+this.width-1); //down left
@@ -907,7 +879,7 @@ export default class Minefield
 
       if (x < this.width-1) //if cell isn't on last column
       {
-         nearbyCells.push(cell+1);                              //right
+         nearbyCells.push(cell+1);                               //right
 
          if (isNotFirstRow) nearbyCells.push(cell-this.width+1); //up right
          if (isNotLastRow ) nearbyCells.push(cell+this.width+1); //down right
@@ -928,35 +900,17 @@ export default class Minefield
 
       let emptyZone = new Set([cell]);
 
-      if (includeFlags)
+      for (let emptyCell of emptyZone)
       {
-         for (let emptyCell of emptyZone)
+         if (this[emptyCell].mines == 0)
          {
-            if (this[emptyCell].mines == 0)
-            {
-               let nearbyCells = this.getNearbyCells(emptyCell);
+            let nearbyCells = this.getNearbyCells(emptyCell);
 
-               for (let j=0; j<nearbyCells.length; j++)
+            for (let j=0; j<nearbyCells.length; j++)
+            {
+               if (includeFlags || this[nearbyCells[j]].isFlagged == false)
                {
                   emptyZone.add(nearbyCells[j])
-               }
-            }
-         }
-      }
-      else
-      {
-         for (let emptyCell of emptyZone)
-         {
-            if (this[emptyCell].mines == 0)
-            {
-               let nearbyCells = this.getNearbyCells(emptyCell);
-
-               for (let j=0; j<nearbyCells.length; j++)
-               {
-                  if (this[nearbyCells[j]].isFlagged == false)
-                  {
-                     emptyZone.add(nearbyCells[j])
-                  }
                }
             }
          }
@@ -975,8 +929,8 @@ export default class Minefield
    {
       begIndex = validateNumber(begIndex, 0, this.cells-1), endIndex = validateNumber(endIndex, 0, this.cells-1);
 
-      let begCords = this.getCellCords(begIndex);
-      let endCords = this.getCellCords(endIndex);
+      let begCords = [begIndex % this.width, Math.floor(begIndex/this.width)];
+      let endCords = [endIndex % this.width, Math.floor(endIndex/this.width)];
 
       if (endCords[0] < begCords[0]) [begCords[0], endCords[0]] = [endCords[0], begCords[0]];
       if (endCords[1] < begCords[1]) [begCords[1], endCords[1]] = [endCords[1], begCords[1]];
@@ -1338,52 +1292,12 @@ class Minefield2D extends Minefield
     */
    forEachCell(fun, returnBreak=false, giveIndex=false)
    {
-      if (returnBreak)
+      for (let i=0; i<this.height; i++)
       {
-         if (giveIndex)
+         for (let j=0; j<this.width; j++)
          {
-            for (let i=0; i<this.height; i++)
-            {
-               for (let j=0; j<this.width; j++)
-               {
-                  let res = fun(this[j][i], j+i*this.width);
-                  if (res !== undefined) return res;
-               }
-            }
-         }
-         else
-         {
-            for (let i=0; i<this.height; i++)
-            {
-               for (let j=0; j<this.width; j++)
-               {
-                  let res = fun(this[j][i], [j, i]);
-                  if (res !== undefined) return res;
-               }
-            }
-         }
-      }
-      else
-      {
-         if (giveIndex)
-         {
-            for (let i=0; i<this.height; i++)
-            {
-               for (let j=0; j<this.width; j++)
-               {
-                  fun(this[j][i], j+i*this.width);
-               }
-            }
-         }
-         else
-         {
-            for (let i=0; i<this.height; i++)
-            {
-               for (let j=0; j<this.width; j++)
-               {
-                  fun(this[j][i], [j, i]);
-               }
-            }
+            let res = fun(this[j][i], giveIndex ? j+i*this.width : [j, i]);
+            if (returnBreak && res !== undefined) return res;
          }
       }
    }
@@ -1405,14 +1319,14 @@ class Minefield2D extends Minefield
       let isNotLastRow = y < this.height-1;
 
 
-      if (includeSelf ) nearbyCells.push([x, y])      //center
+      if (includeSelf ) nearbyCells.push([x, y])          //center
 
-      if (isNotFirstRow) nearbyCells.push([x, y-1]);  //up
-      if (isNotLastRow ) nearbyCells.push([x, y+1]);  //down
+      if (isNotFirstRow) nearbyCells.push([x, y-1]);      //up
+      if (isNotLastRow ) nearbyCells.push([x, y+1]);      //down
 
       if (x > 0) //if cell isn't on first column
       {
-         nearbyCells.push([x-1, y]);                //left
+         nearbyCells.push([x-1, y]);                      //left
 
          if (isNotFirstRow) nearbyCells.push([x-1, y-1]); //up left
          if (isNotLastRow ) nearbyCells.push([x-1, y+1]); //down left
@@ -1420,7 +1334,7 @@ class Minefield2D extends Minefield
 
       if (x < this.width-1) //if cell isn't on last column
       {
-         nearbyCells.push([x+1, y]);                //right
+         nearbyCells.push([x+1, y]);                      //right
 
          if (isNotFirstRow) nearbyCells.push([x+1, y-1]); //up right
          if (isNotLastRow ) nearbyCells.push([x+1, y+1]); //down right
@@ -1491,7 +1405,7 @@ function validateNumber(num, min=-Infinity, max=Infinity)
    try
    {
       num = Math.trunc(min >= 0 ? Math.abs(+num) : +num);
-      if (isNaN(num)) throw new Error();
+      if (isNaN(num)) throw 0;
    }
    catch
    {
