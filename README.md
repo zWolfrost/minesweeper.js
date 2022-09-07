@@ -44,7 +44,7 @@ use a [cdn](#how-to-use) or copy the file from the [src directory](src/).
 ```
 import Minefield from "path/to/minesweeper.js";
 //OR
-import Minefield from "https://cdn.jsdelivr.net/npm/@zwolfrost/minesweeper.js@2.1.2/src/minesweeper.js";
+import Minefield from "https://cdn.jsdelivr.net/npm/@zwolfrost/minesweeper.js@2.3.3/src/minesweeper.js";
 
 let minefield = new Minefield(2, 5, 3);
 ```
