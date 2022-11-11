@@ -39,12 +39,16 @@ use a [cdn](#how-to-use) or copy the file from the [src directory](src/).
 
 &nbsp;
 # How to use
-*Note that you can change the cdn version and/or package type of the library with whatever version you want. Template:*<br>
+*Note that you can change the cdn version and/or package type of the library with whatever version you want. Template:*
+
 `https://cdn.jsdelivr.net/npm/package@version/file`.
+
+*Also note that you have to use an ES module to import as seen below, unless you want to use the CDN method*
+
 ```
-import Minefield from "path/to/minesweeper.js";
+import Minefield from "@zwolfrost/minesweeper.js";
 //OR
-import Minefield from "https://cdn.jsdelivr.net/npm/@zwolfrost/minesweeper.js@2.3.3/src/minesweeper.js";
+import Minefield from "https://cdn.jsdelivr.net/npm/@zwolfrost/minesweeper.js@2.3/src/minesweeper.js";
 
 let minefield = new Minefield(2, 5, 3);
 ```

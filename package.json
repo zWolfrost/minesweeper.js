@@ -3,6 +3,7 @@
    "version": "2.3.3",
    "description": "A Minesweeper class engine that can be used to easily create minefields and play without having to code any logic (UI-indipendent)",
    "main": "src/minesweeper.js",
+   "type": "module",
    "repository": {
       "type": "git",
       "url": "git+https://github.com/zWolfrost/minesweeper.js.git"
