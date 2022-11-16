@@ -27,15 +27,16 @@ use a [cdn](#how-to-use) or copy the file from the [src directory](src/).
 &nbsp;
 ## Changelog and Breaking Changes (as of v2.0.0)
 **Watch out for this section if you wish to migrate to a different version.** <br>
-*New patches are usually bugfixes and/or documentation clarification*
+*New patches are usually bugfixes and/or documentation clarifications and only meaningful ones are written.*
 
-- **v2.0.0**: Added Minefield2D Object. The "rows" and "cols" parameters and properties were replaced with "width" and "height" for understanding purposes. <br> `(rows, cols, ...)` ➜ `(width, height, ...)`
+- **v2.0.0**: Added Minefield2D Object. The "rows" and "cols" parameters and properties were replaced with "width" and "height" for understanding purposes. <br> `(rows, cols, ...)` ➜ `(width, height, ...)` <br><br>
 
-- **v2.1.0**: Added "getSquareZone" method. The "x" and "y" parameters were changed to stay both in an array when passing them to methods. <br> `(x, y, ...)` ➜ `([x, y], ...)`
+- **v2.1.0**: Added "getSquareZone" method. The "x" and "y" parameters were changed to stay both in an array when passing them to methods. <br> `(x, y, ...)` ➜ `([x, y], ...)` <br><br>
 
-- **v2.2.0**: Re-added "simplify" method and a slim version of the package.
+- **v2.2.0**: Re-added "simplify" method and a slim version of the package. <br><br>
 
 - **v2.3.0**: Changed behaviour of the "forEachCell" and "simplify" methods. See JSDOC documentation for details.
+  - *v2.3.4: The imports' usage was finally corrected and the type of the package is specified in package.json (module).*
 
 &nbsp;
 # How to use
